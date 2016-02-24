@@ -1,0 +1,324 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:context="http://www.springframework.org/schema/context" xmlns:sfdc="http://www.mulesoft.org/schema/mule/sfdc" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/apikit http://www.mulesoft.org/schema/mule/apikit/current/mule-apikit.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+http://www.mulesoft.org/schema/mule/sfdc http://www.mulesoft.org/schema/mule/sfdc/current/mule-sfdc.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-current.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+    <http:listener-config name="system-api-httpListenerConfig" host="0.0.0.0" port="${http.port}" doc:name="HTTP Listener Configuration"/>
+    
+    
+    <apikit:config name="api-config" raml="healthcare-fhir2sfdchealth-ehr-system-api.raml" consoleEnabled="true" consolePath="console" doc:name="Router">
+        <apikit:flow-mapping resource="/patients/{patientIDType}/{patientID}/observations" action="post" flow-ref="post:/observations:system-api-config"/>
+        <apikit:flow-mapping resource="/patients/{patientIDType}/{patientID}/conditions" action="post" flow-ref="post:/conditions:system-api-config"/>
+        <apikit:flow-mapping resource="/patients/{patientIDType}/{patientID}/medications" action="post" flow-ref="post:/medications:system-api-config"/>
+        <apikit:flow-mapping resource="/patients/{patientIDType}/{patientID}/allergies" action="post" flow-ref="post:/allergies:system-api-config"/>
+        <apikit:flow-mapping resource="/patients/{patientIDType}/{patientID}/scheduling" action="post" flow-ref="post:/scheduling:system-api-config"/>
+        <apikit:flow-mapping resource="/patients/{patientIDType}/{patientID}/encounters" action="post" flow-ref="post:/encounters:system-api-config"/>
+        <apikit:flow-mapping resource="/patients/{patientIDType}/{patientID}" action="put" flow-ref="put:/patients:system-api-config"/>
+
+
+    </apikit:config>
+    <sfdc:config name="Salesforce__Basic_Authentication" username="${sfdc.username}" password="${sfdc.password}" securityToken="${sfdc.token}" doc:name="Salesforce: Basic Authentication" disableSessionInvalidation="true"/>
+    <flow name="system-api-main">
+        <http:listener config-ref="system-api-httpListenerConfig" path="/api/*" doc:name="HTTP"/>
+        <apikit:router config-ref="api-config" doc:name="APIkit Router"/>
+        <exception-strategy ref="system-api-apiKitGlobalExceptionMapping" doc:name="Reference Exception Strategy"/>
+    </flow>
+    <flow name="put:/patients:system-api-config">
+    	<set-variable variableName="patientID" value="#[message.inboundProperties.'http.uri.params'.patientID]" doc:name="Set patientID"/>
+        <set-variable variableName="patientIDType" value="#[message.inboundProperties.'http.uri.params'.patientIDType]" doc:name="Set patientIDType"/>
+        <json:json-to-object-transformer doc:name="JSON to Object"/>
+        <dw:transform-message doc:name="Transform and store payload into fhirPatientData variable">
+            <dw:set-variable variableName="fhirPatientData"><![CDATA[%dw 1.0
+%output application/java
+---
+payload]]></dw:set-variable>
+        </dw:transform-message>
+        <sfdc:query-single config-ref="Salesforce__Basic_Authentication" query="dsql:SELECT Id, Account__c FROM EhrPatient__c WHERE SourceSystemId__c = '#[flowVars.patientID]'" doc:name="Get EmrPatient from SFDC"/>
+
+        <dw:transform-message doc:name="Prepare update of  the EmrPatient in SFDC" metadata:id="20d670dd-bcdb-4d16-8ec1-2e1ef3cc4a34">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+{
+	"Id": payload.Id,
+	"Address1City__c": flowVars.fhirPatientData.address[0].city,
+	"Address1Country__c": flowVars.fhirPatientData.address[0].country,
+	"Address1Line1__c": flowVars.fhirPatientData.address[0].line[0],
+	"Address1Line2__c": "",
+	"Address1PostalCode__c": flowVars.fhirPatientData.address[0].postalCode,
+	"Address1State__c": flowVars.fhirPatientData.address[0].state,
+	"FamilyName1__c": flowVars.fhirPatientData.name[0].family[0] when (flowVars.fhirPatientData.name[0].family[0] != null) otherwise "",
+	"GenderLabel__c": flowVars.fhirPatientData.gender,
+	"GivenName1__c": flowVars.fhirPatientData.name[0].given[0] when (flowVars.fhirPatientData.name[0].given[0] != null) otherwise "",
+	"MaritalStatusCode__c": flowVars.fhirPatientData.maritalStatus.coding[0].code,
+	"MaritalStatusLabel__c": flowVars.fhirPatientData.maritalStatus.coding[0].display,
+	"MaritalStatusSystem__c": flowVars.fhirPatientData.maritalStatus.coding[0].system,
+	"Name__c": ((flowVars.fhirPatientData.name[0].given[0] ++ " ") when (flowVars.fhirPatientData.name[0].given[0] != null) otherwise "") 
+			++ (flowVars.fhirPatientData.name[0].family[0]) when (flowVars.fhirPatientData.name[0].family[0] != null) otherwise "",
+	"Telecom1Use__c": flowVars.fhirPatientData.telecom[0].use,
+	"Telecom1Value__c": flowVars.fhirPatientData.telecom[0].value,
+	"Telecom2Use__c": flowVars.fhirPatientData.telecom[1].use,
+	"Telecom2Value__c": flowVars.fhirPatientData.telecom[1].value,
+	("BirthDate__c": flowVars.fhirPatientData.birthDate as :date) when flowVars.fhirPatientData.birthDate != null
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <sfdc:update-single config-ref="Salesforce__Basic_Authentication" type="EhrPatient__c" doc:name="Update EmrPatient"/>
+        <logger message="Patient with ID #[payload.Id] was updated succesfully." level="INFO" doc:name="Log the success"/>
+        <dw:transform-message doc:name="Transform response to JSON">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+payload
+]]></dw:set-payload>
+        </dw:transform-message>
+
+
+    </flow>
+
+    <flow name="post:/medications:system-api-config">
+        <set-variable variableName="patientID" value="#[message.inboundProperties.'http.uri.params'.patientID]" doc:name="Set patientID"/>
+        <set-variable variableName="patientIDType" value="#[message.inboundProperties.'http.uri.params'.patientIDType]" doc:name="Set patientIDType"/>
+        <json:json-to-object-transformer doc:name="JSON to Object"/>
+        <dw:transform-message metadata:id="73375ade-166d-4f0e-85fc-7f05523703a1" doc:name="Transform and store payload into inputJson variable">
+            <dw:set-variable variableName="inputJson"><![CDATA[%dw 1.0
+%output application/java
+---
+payload]]></dw:set-variable>
+        </dw:transform-message>
+        <sfdc:query-single config-ref="Salesforce__Basic_Authentication" query="dsql:SELECT Id, Account__c, Name__c FROM EhrPatient__c WHERE SourceSystemId__c = '#[flowVars.patientID]'" doc:name="Get EmrPatient from SFDC"/>
+        <dw:transform-message doc:name="Prepare create of the EhrMedicationPrescriptions in SFDC" metadata:id="ae092c2b-ea0b-45eb-b71c-a63399074d8d">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+flowVars.inputJson map {
+	"Account__c": payload.Account__c,
+	"DateWritten__c": now as :date,
+	"DispenseMedicationCodeSystem__c": $.medicationCodeableConcept.coding[1].system,
+	"DispenseMedicationCode__c": $.medicationCodeableConcept.coding[1].code,
+	"DispenseMedicationName__c": $.medicationCodeableConcept.coding[1].display,
+	"DispenseQuantityUnit__c": $.dosageInstruction[0].doseQuantity.unit,
+	"DispenseQuantityValue__c": $.dosageInstruction[0].doseQuantity.value,
+	"MedicationCodeLabel__c": $.medicationCodeableConcept.coding[1].display,
+	"MedicationCodeSystem__c": $.medicationCodeableConcept.coding[1].system,
+	"MedicationCode__c": $.medicationCodeableConcept.coding[1].code,
+	"MedicationName__c": $.medicationCodeableConcept.text,
+	"Patient__c": payload.Id,
+	"PrescriberName__c": $.prescriber.display,
+	"StatusCode__c": $.status,
+	"ReasonCode__c": $.reasonCodeableConcept.coding.display
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <sfdc:create config-ref="Salesforce__Basic_Authentication" type="EhrMedicationPrescription__c" doc:name="Create new EhrMedicationPrescriptions">
+            <sfdc:objects ref="#[payload]"/>
+        </sfdc:create>
+        <logger message="New Medication Prescriptions were created succesfully, payload is: #[payload]" level="INFO" doc:name="Log the success"/>
+        <dw:transform-message doc:name="Transform response to JSON">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+"Success": true]]></dw:set-payload>
+        </dw:transform-message>
+
+    </flow>
+    <flow name="post:/observations:system-api-config">
+        <set-variable variableName="patientID" value="#[message.inboundProperties.'http.uri.params'.patientID]" doc:name="Set patientID"/>
+        <set-variable variableName="patientIDType" value="#[message.inboundProperties.'http.uri.params'.patientIDType]" doc:name="Set patientIDType"/>
+        <json:json-to-object-transformer doc:name="JSON to Object"/>
+        <dw:transform-message metadata:id="73375ade-166d-4f0e-85fc-7f05523703a1" doc:name="Strore the input JSON">
+            <dw:set-variable variableName="inputJson"><![CDATA[%dw 1.0
+%output application/java
+---
+payload]]></dw:set-variable>
+        </dw:transform-message>
+        <sfdc:query-single config-ref="Salesforce__Basic_Authentication" query="dsql:SELECT Id, Name__c, Account__c FROM EhrPatient__c WHERE SourceSystemId__c = '#[flowVars.patientID]'" doc:name="Get EmrPatient from SFDC"/>
+        <set-variable variableName="ehrPatient" value="#[payload]" doc:name="Set ehrPatient variable"/>
+        <foreach collection="#[flowVars.inputJson]" doc:name="For Each">
+            <dw:transform-message doc:name="Prepare create of the EhrObservations in SFDC" metadata:id="076be915-77c0-40cb-9e4a-d6c85ba0e3f9">
+                <dw:input-variable doc:sample="string.dwl" variableName="inputJson"/>
+                <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+(payload.code.coding map {
+	"Account__c": flowVars.ehrPatient.Account__c,
+	"AppliesDateTime__c": payload.effectiveDateTime as :date default null,
+	"Comments__c": "EPIC Observations",
+	"NameCode__c": $.code,
+	"NameLabel__c": $.display,
+	"NameSystem__c": $.system,
+	"Patient__c": flowVars.ehrPatient.Id,
+	"ReferenceRangeHighUnit__c": payload.referenceRange[0].high.unit,
+	"ReferenceRangeHighValue__c": payload.referenceRange[0].high.value,
+	"ReferenceRangeLowUnit__c": payload.referenceRange[0].low.unit,
+	"ReferenceRangeLowValue__c": payload.referenceRange[0].low.value,
+	"ValueCode__c": payload.valueQuantity.code,
+	"ValueLabel__c": payload.valueQuantity.system,
+	"ValueQuantityUnit__c": payload.valueQuantity.unit,
+	"ValueQuantity__c": payload.valueQuantity.value
+}) when payload.component == null otherwise (
+	payload.component map {
+		"Account__c": flowVars.ehrPatient.Account__c,
+		"AppliesDateTime__c": payload.effectiveDateTime as :date default null,
+		"Comments__c": "EPIC Observations",
+		"NameCode__c": $.code.coding.code,
+		"NameLabel__c": $.code.coding.display,
+		"NameSystem__c": $.code.coding.system,
+		"Patient__c": flowVars.ehrPatient.Id,
+		"ReferenceRangeHighUnit__c": $.referenceRange[0].high.unit,
+		"ReferenceRangeHighValue__c": $.referenceRange[0].high.value,
+		"ReferenceRangeLowUnit__c": $.referenceRange[0].low.unit,
+		"ReferenceRangeLowValue__c": $.referenceRange[0].low.value,
+		"ValueCode__c": $.valueQuantity.code,
+		"ValueLabel__c": $.valueQuantity.system,
+		"ValueQuantityUnit__c": $.valueQuantity.unit,
+		"ValueQuantity__c": $.valueQuantity.value
+	}
+)]]></dw:set-payload>
+            </dw:transform-message>
+            <sfdc:create config-ref="Salesforce__Basic_Authentication" type="EhrObservation__c" doc:name="Create new EhrObservations">
+                <sfdc:objects ref="#[payload]"/>
+            </sfdc:create>
+            <logger level="INFO" doc:name="Log the success" message="New Observations were created succesfully, payload is: #[payload]"/>
+        </foreach>
+
+        <dw:transform-message doc:name="Transform response to JSON">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+payload]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+    <flow name="post:/conditions:system-api-config">
+        <set-variable variableName="patientID" value="#[message.inboundProperties.'http.uri.params'.patientID]" doc:name="Set patientID"/>
+        <set-variable variableName="patientIDType" value="#[message.inboundProperties.'http.uri.params'.patientIDType]" doc:name="Set patientIDType"/>
+        <json:json-to-object-transformer doc:name="JSON to Object"/>
+        <dw:transform-message metadata:id="73375ade-166d-4f0e-85fc-7f05523703a1" doc:name="Transform and store payload into inputJson variable">
+            <dw:set-variable variableName="inputJson"><![CDATA[%dw 1.0
+%output application/java
+---
+payload]]></dw:set-variable>
+        </dw:transform-message>
+        <sfdc:query-single config-ref="Salesforce__Basic_Authentication" query="dsql:SELECT Id, Name__c, Account__c FROM EhrPatient__c WHERE SourceSystemId__c = '#[flowVars.patientID]'" doc:name="Get EmrPatient from SFDC"/>
+        <set-variable variableName="ehrPatient" value="#[payload]" doc:name="Set ehrPatient variable"/>
+        <foreach collection="#[flowVars.inputJson]" doc:name="For Each">
+            <dw:transform-message metadata:id="2db5a607-c17d-4dde-a454-36107d60c4d4" doc:name="Prepare create of the EhrConditions in SFDC">
+                <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+(payload.code.coding map {
+	"Account__c": flowVars.ehrPatient.Account__c,
+	"AbatementDetail255__c": "",
+	"AbatementDetail__c": "",
+	"CodeLabel__c": $.display,
+	"CodeSystem__c": $.system,
+	"Code__c": $.code,
+	"Onset__c": payload.onsetDateTime,
+	"StatusCode__c": "Active",
+	"Patient__c": flowVars.ehrPatient.Id
+}) when (payload.code.coding != null) otherwise []]]></dw:set-payload>
+            </dw:transform-message>
+            <sfdc:create config-ref="Salesforce__Basic_Authentication" type="EhrCondition__c" doc:name="Create new EhrConditions">
+                <sfdc:objects ref="#[payload]"/>
+            </sfdc:create>
+            <logger message="New Conditions were created succesfully, payload is: #[payload]" level="INFO" doc:name="Log the success"/>
+        </foreach>
+
+        <dw:transform-message doc:name="Transform response to JSON">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+payload]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+    <flow name="post:/allergies:system-api-config">
+        <set-variable variableName="patientID" value="#[message.inboundProperties.'http.uri.params'.patientID]" doc:name="Set patientID"/>
+        <set-variable variableName="patientIDType" value="#[message.inboundProperties.'http.uri.params'.patientIDType]" doc:name="Set patientIDType"/>
+        <json:json-to-object-transformer doc:name="JSON to Object"/>
+        <dw:transform-message metadata:id="73375ade-166d-4f0e-85fc-7f05523703a1" doc:name="Strore the input JSON">
+            <dw:set-variable variableName="inputJson"><![CDATA[%dw 1.0
+%output application/java
+---
+payload]]></dw:set-variable>
+        </dw:transform-message>
+        <sfdc:query-single config-ref="Salesforce__Basic_Authentication" query="dsql:SELECT Id, Name__c, Account__c FROM EhrPatient__c WHERE SourceSystemId__c = '#[flowVars.patientID]'" doc:name="Get EmrPatient from SFDC"/>
+        <set-variable variableName="ehrPatient" value="#[payload]" doc:name="Set ehrPatient variable"/>
+        <foreach collection="#[flowVars.inputJson]" doc:name="For Each">
+            <dw:transform-message metadata:id="9855b3a5-1fef-40fc-a306-9b40441544e6" doc:name="Prepare create of the EhrAllergyIntolerances in SFDC">
+                <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+[{
+		"RecorderName__c": payload.reporter.display,
+		"Account__c": flowVars.ehrPatient.Account__c,
+		("CriticalityLabel__c": payload.criticality) when (payload.criticality != null),
+		"SubstanceLong__c": payload.substance.text,	
+		"Patient__c": flowVars.ehrPatient.Id,
+		("Reaction__c": (payload.reaction map $.manifestation.text) joinBy ', ') when (payload.reaction != null),
+		"RecordedDate__c": payload.recordedDate as :date default null
+}]
+]]></dw:set-payload>
+            </dw:transform-message>
+            <sfdc:create config-ref="Salesforce__Basic_Authentication" type="EhrAllergyIntolerance__c" doc:name="Create new EhrAllergyIntolerances">
+                <sfdc:objects ref="#[payload]"/>
+            </sfdc:create>
+            <logger message="New AllergyIntolerances were created succesfully, payload is: #[payload]" level="INFO" doc:name="Log the success"/>
+        </foreach>
+        <dw:transform-message doc:name="Transform response to JSON">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+payload]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+    <flow name="post:/scheduling:system-api-config">
+
+        <dw:transform-message doc:name="Generate response">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+"message": "Not supported yet."]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+    <flow name="post:/encounters:system-api-config">
+        <dw:transform-message doc:name="Generate response">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+"message": "Not supported yet."]]></dw:set-payload>
+        </dw:transform-message>
+
+
+    </flow>
+
+    <apikit:mapping-exception-strategy name="system-api-apiKitGlobalExceptionMapping">
+        <apikit:mapping statusCode="404">
+            <apikit:exception value="org.mule.module.apikit.exception.NotFoundException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{ &quot;message&quot;: &quot;Resource not found&quot; }" doc:name="Set Payload"/>
+        </apikit:mapping>
+        <apikit:mapping statusCode="405">
+            <apikit:exception value="org.mule.module.apikit.exception.MethodNotAllowedException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{ &quot;message&quot;: &quot;Method not allowed&quot; }" doc:name="Set Payload"/>
+        </apikit:mapping>
+        <apikit:mapping statusCode="415">
+            <apikit:exception value="org.mule.module.apikit.exception.UnsupportedMediaTypeException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{ &quot;message&quot;: &quot;Unsupported media type&quot; }" doc:name="Set Payload"/>
+        </apikit:mapping>
+        <apikit:mapping statusCode="406">
+            <apikit:exception value="org.mule.module.apikit.exception.NotAcceptableException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{ &quot;message&quot;: &quot;Not acceptable&quot; }" doc:name="Set Payload"/>
+        </apikit:mapping>
+        <apikit:mapping statusCode="400">
+            <apikit:exception value="org.mule.module.apikit.exception.BadRequestException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{ &quot;message&quot;: &quot;Bad request&quot; }" doc:name="Set Payload"/>
+        </apikit:mapping>
+    </apikit:mapping-exception-strategy>
+</mule>

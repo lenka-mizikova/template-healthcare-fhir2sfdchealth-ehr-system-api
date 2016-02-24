@@ -1,0 +1,62 @@
+#%RAML 0.8
+title: SFDC HC System API
+version: v1
+baseUri: http://healthcare-fhir2sfdchealth-ehr-system-api.cloudhub.io/api
+
+/patients/{patientIDType}/{patientID}:
+  displayName: patient
+  uriParameters:
+    patientID:
+      type: string
+      description: Patient ID
+    patientIDType:
+      type: string
+      description: ID Type like MRN
+  put:
+    description: "Update Patient in the SFDC instance"
+    responses:
+      200:
+        body:
+          application/json:   
+  /observations:
+    post:  
+      description: "Create new Observation in the SFDC instance"
+      responses:
+        200:
+          body:
+            application/json:            
+  /conditions:
+    post:  
+      description: "Create new Condition in the SFDC instance"
+      responses:
+        200:
+          body:
+            application/json:               
+  /medications:
+    post:  
+      description: "Create new Medication in the SFDC instance"
+      responses:
+        200:
+          body:
+            application/json:               
+  /allergies:
+    post:  
+      description: "Create new Allergy in the SFDC instance"
+      responses:
+        200:
+          body:
+            application/json:               
+  /scheduling:
+    post:  
+      description: "Create new Scheduling in the SFDC instance"
+      responses:
+        200:
+          body:
+            application/json:              
+  /encounters:
+    post:  
+      description: "Create new Encounter in the SFDC instance"
+      responses:
+        200:
+          body:
+            application/json:          

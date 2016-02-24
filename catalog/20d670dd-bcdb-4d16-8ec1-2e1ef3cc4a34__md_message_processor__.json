@@ -1,0 +1,21 @@
+{
+    "inputMessageMetadata": {
+        "flowVariables": {
+            "fhirPatientData": {
+                "connectorName": "#_custom_mule_metadata_type_#",
+                "typeId": "FhirPatient"
+            },
+            "patientIDType": {
+                "connectorName": "#_custom_mule_metadata_type_#",
+                "typeId": "String"
+            },
+            "patientID": {
+                "connectorName": "#_custom_mule_metadata_type_#",
+                "typeId": "String"
+            }
+        }
+    },
+    "outputMessageMetadata": {},
+    "id": "20d670dd-bcdb-4d16-8ec1-2e1ef3cc4a34",
+    "version": "5.2.0.0"
+}

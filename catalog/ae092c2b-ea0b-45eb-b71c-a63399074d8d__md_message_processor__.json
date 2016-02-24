@@ -1,0 +1,17 @@
+{
+    "inputMessageMetadata": {
+        "messagePayload": {
+            "connectorName": "#_custom_mule_metadata_type_#",
+            "typeId": "FhirPatient"
+        },
+        "flowVariables": {
+            "inputJson": {
+                "connectorName": "#_custom_mule_metadata_type_#",
+                "typeId": "FhirMedicationOrder"
+            }
+        }
+    },
+    "outputMessageMetadata": {},
+    "id": "ae092c2b-ea0b-45eb-b71c-a63399074d8d",
+    "version": "5.2.0.0"
+}

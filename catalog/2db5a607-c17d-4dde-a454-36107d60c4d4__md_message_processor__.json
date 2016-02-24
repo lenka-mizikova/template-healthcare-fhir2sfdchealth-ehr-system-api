@@ -1,0 +1,21 @@
+{
+    "inputMessageMetadata": {
+        "messagePayload": {
+            "connectorName": "#_custom_mule_metadata_type_#",
+            "typeId": "FhirCondition"
+        },
+        "flowVariables": {
+            "inputJson": {
+                "connectorName": "#_custom_mule_metadata_type_#",
+                "typeId": "FhirConditionList"
+            },
+            "ehrPatient": {
+                "connectorName": "#_custom_mule_metadata_type_#",
+                "typeId": "EhrPatientMapFromSFDC"
+            }
+        }
+    },
+    "outputMessageMetadata": {},
+    "id": "2db5a607-c17d-4dde-a454-36107d60c4d4",
+    "version": "5.2.0.0"
+}
