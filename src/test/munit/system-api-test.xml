@@ -269,7 +269,7 @@ return patient;]]></scripting:script>
                 <munit:assert-true condition="#[payload.Account__c != null]" doc:name="Assert True" message="The EhrPatient Account__c should not be NULL!"/>
             </mock:assertions-before-call>
             <mock:assertions-after-call>
-                <munit:assert-true message="The payload should contain records which should be inserted into SFDC instance!" condition="#[true]" doc:name="Assert True"/>
+                <munit:assert-true message="The payload should contain records which should be inserted into SFDC instance!" condition="#[payload.toString().equals(&quot;[{Account__c=TestAcc, DateWritten__c=Wed Feb 24 00:00:00 CET 2016, DispenseMedicationCodeSystem__c=RxNorm, DispenseMedicationCode__c=679314, DispenseMedicationName__c=null, DispenseQuantityUnit__c=null, DispenseQuantityValue__c=null, MedicationCodeLabel__c=null, MedicationCodeSystem__c=RxNorm, MedicationCode__c=679314, MedicationName__c=PALIPERIDONE ER 3 MG TABLET,EXTENDED RELEASE 24 HR, Patient__c=123, PrescriberName__c=PROVIDER, NOT CONFIRMED, StatusCode__c=active, ReasonCode__c=null}]&quot;)]" doc:name="Assert True"/>
             </mock:assertions-after-call>
         </mock:spy>
         <http:request config-ref="HTTP_Request_Configuration" method="POST" path="/patients/{patientIDType}/{patientID}/medications" doc:name="HTTP">
@@ -327,7 +327,7 @@ return patient;]]></scripting:script>
                 <munit:assert-true message="Payload should be instance of Map and the resourceType should be 'Observation'!" condition="#[payload instanceof Map &amp;&amp; payload.resourceType.equals(&quot;Observation&quot;)]" doc:name="Assert True"/>
             </mock:assertions-before-call>
             <mock:assertions-after-call>
-                <munit:assert-true message="The payload should contain records which should be inserted into SFDC instance!" condition="#[true]" doc:name="Assert True"/>
+                <munit:assert-true message="The payload should contain records which should be inserted into SFDC instance!" condition="#[payload.toString().equals(&quot;[{Account__c=TestAcc, AppliesDateTime__c=Fri Jul 31 00:00:00 CEST 2015, Comments__c=EPIC Observations, NameCode__c=86021, NameLabel__c=, NameSystem__c=Internal, Patient__c=123, ReferenceRangeHighUnit__c=null, ReferenceRangeHighValue__c=null, ReferenceRangeLowUnit__c=null, ReferenceRangeLowValue__c=null, ValueCode__c=null, ValueLabel__c=null, ValueQuantityUnit__c=null, ValueQuantity__c=null}]&quot;)]" doc:name="Assert True"/>
             </mock:assertions-after-call>
         </mock:spy>
         <http:request config-ref="HTTP_Request_Configuration" method="POST" path="/patients/{patientIDType}/{patientID}/observations" doc:name="HTTP">
