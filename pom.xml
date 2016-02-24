@@ -18,6 +18,7 @@
     <mule.munit.support.version>3.7.1</mule.munit.support.version>
     </properties>
 
+
 	<build>
 		<plugins>
 			<plugin>
@@ -205,6 +206,12 @@
             <artifactId>mule-plugin-weave_2.11</artifactId>
             <version>${mule.version}</version>
             <scope>provided</scope>
+            <exclusions>
+            	<exclusion>
+            		<groupId>org.threeten</groupId>
+					<artifactId>threetenbp</artifactId>
+            	</exclusion>
+            </exclusions>
         </dependency>
     <dependency>
             <groupId>org.mule.modules</groupId>
