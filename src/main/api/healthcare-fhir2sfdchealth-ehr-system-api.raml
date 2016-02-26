@@ -14,6 +14,9 @@ baseUri: http://healthcare-fhir2sfdchealth-ehr-system-api.cloudhub.io/api
       description: ID Type like MRN
   put:
     description: "Update Patient in the SFDC instance"
+    body:
+      application/json:
+        example: !include patient-fhir-request.json
     responses:
       200:
         body:
@@ -21,6 +24,9 @@ baseUri: http://healthcare-fhir2sfdchealth-ehr-system-api.cloudhub.io/api
   /observations:
     post:  
       description: "Create new Observation in the SFDC instance"
+      body:
+        application/json:
+          example: !include observation-fhir-request.json
       responses:
         200:
           body:
@@ -28,6 +34,9 @@ baseUri: http://healthcare-fhir2sfdchealth-ehr-system-api.cloudhub.io/api
   /conditions:
     post:  
       description: "Create new Condition in the SFDC instance"
+      body:
+        application/json:
+          example: !include condition-fhir-request.json
       responses:
         200:
           body:
@@ -35,6 +44,9 @@ baseUri: http://healthcare-fhir2sfdchealth-ehr-system-api.cloudhub.io/api
   /medications:
     post:  
       description: "Create new Medication in the SFDC instance"
+      body:
+        application/json:
+          example: !include medicationorder-fhir-request.json
       responses:
         200:
           body:
@@ -42,6 +54,9 @@ baseUri: http://healthcare-fhir2sfdchealth-ehr-system-api.cloudhub.io/api
   /allergies:
     post:  
       description: "Create new Allergy in the SFDC instance"
+      body:
+        application/json:
+          example: !include allergyIntolerance-fhir-request.json
       responses:
         200:
           body:

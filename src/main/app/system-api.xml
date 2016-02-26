@@ -9,7 +9,7 @@ http://www.springframework.org/schema/context http://www.springframework.org/sch
 http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
     <http:listener-config name="system-api-httpListenerConfig" host="0.0.0.0" port="${http.port}" doc:name="HTTP Listener Configuration"/>
-    
+    <context:property-placeholder location="common.properties, mule.${mule.env}.properties"/>
     
     <apikit:config name="api-config" raml="healthcare-fhir2sfdchealth-ehr-system-api.raml" consoleEnabled="true" consolePath="console" doc:name="Router">
         <apikit:flow-mapping resource="/patients/{patientIDType}/{patientID}/observations" action="post" flow-ref="post:/observations:system-api-config"/>
@@ -113,6 +113,7 @@ flowVars.inputJson map {
 	"ReasonCode__c": $.reasonCodeableConcept.coding.display
 }]]></dw:set-payload>
         </dw:transform-message>
+        <logger message="medication - #[payload]" level="INFO" doc:name="Logger"/>
         <sfdc:create config-ref="Salesforce__Basic_Authentication" type="EhrMedicationPrescription__c" doc:name="Create new EhrMedicationPrescriptions">
             <sfdc:objects ref="#[payload]"/>
         </sfdc:create>
@@ -254,10 +255,10 @@ payload]]></dw:set-variable>
 [{
 		"RecorderName__c": payload.reporter.display,
 		"Account__c": flowVars.ehrPatient.Account__c,
-		("CriticalityLabel__c": payload.criticality) when (payload.criticality != null),
+		("CriticalityLabel__c": ((payload.criticality map $) joinBy ', ') when (payload.criticality is :array) otherwise payload.criticality) when (payload.criticality != null),
 		"SubstanceLong__c": payload.substance.text,	
 		"Patient__c": flowVars.ehrPatient.Id,
-		("Reaction__c": (payload.reaction map $.manifestation.text) joinBy ', ') when (payload.reaction != null),
+		("Reaction__c": ((payload.reaction map $.manifestation.text) joinBy ', ') when (payload.reaction is :array) otherwise payload.reaction) when (payload.reaction != null),
 		"RecordedDate__c": payload.recordedDate as :date default null
 }]
 ]]></dw:set-payload>
