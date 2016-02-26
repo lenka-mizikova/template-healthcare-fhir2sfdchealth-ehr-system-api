@@ -12,7 +12,6 @@
 	* [Running on CloudHub](#runoncloudhub)
 	* [Deploying your Anypoint Template on CloudHub](#deployingyouranypointtemplateoncloudhub)
 	* [Properties to be configured (With examples)](#propertiestobeconfigured)
-+ [API Calls](#apicalls)
 
 # License Agreement <a name="licenseagreement"/>
 Note that using this template is subject to the conditions of this [License Agreement](AnypointTemplateLicense.pdf).
@@ -20,18 +19,17 @@ Please review the terms of the license before downloading and using this templat
 
 # Use Case <a name="usecase"/>
 
-As an EHR user I want to load clinical data to Salesforce Health Cloud.
+As an EHR user I want a service that allows me to load clinical data to Salesforce Health Cloud by using the FHIR standard.
 
-FHIR to Salesforce Health Cloud EHR System API exposing 5 endpoints which expecting data in JSON format according FHIR specification [version 1.0.2 DSTU2](https://www.hl7.org/FHIR/DSTU2/index.html) and saves them to Salesforce Healthcloud System.
+FHIR to Salesforce Health Cloud EHR System API exposes 5 endpoints that expect data in JSON format according FHIR specification [version 1.0.2 DSTU2](https://www.hl7.org/FHIR/DSTU2/index.html) and upserts the clinical data to Salesforce Health Cloud.
 
-FHIR to Salesforce Health Cloud EHR System API is part of Healthcare Solution and is used by HL7 to FHIR EHR Process API and Salesforce Health Cloud to FHIR EHR Experience API.
+FHIR to Salesforce Health Cloud EHR System API is part of the Healthcare Solution Templates and it is used by HL7 to FHIR EHR Process API and Salesforce Health Cloud to FHIR EHR Experience API.
 
-For each endpoint there is separate flow which handles operation over different object - **Patient**, **Condition**, **Observation**, **Medication**, **Allergy**. Endpoints are defined by RAML specification in [healthcare-fhir2sfdchealth-ehr-system-api.raml](../master/src/main/api/healthcare-fhir2sfdchealth-ehr-system-api.raml). The routing is done  through [APIkit](https://docs.mulesoft.com/anypoint-platform-for-apis/apikit-basic-anatomy).
+For each endpoint there is separate flow which handles operation over different object - **Patient**, **Condition**, **Observation**, **Medication**, **Allergy**. Endpoints are defined using the RAML specification in [healthcare-fhir2sfdchealth-ehr-system-api.raml](../master/src/main/api/healthcare-fhir2sfdchealth-ehr-system-api.raml). The implementation is done through [APIkit](https://docs.mulesoft.com/anypoint-platform-for-apis/apikit-basic-anatomy).
 
-For the Patient object the flow transform input payload to get the Patient already inserted in Salesforce Health Cloud System and then call update operation with transformed data defined as input JSON in PUT request.
+For the Patient object, the flow transforms the input payload to get the Patient already inserted in Salesforce Health Cloud System and then calls the update operation using the transformed data recieved on each PUT request as JSON.
 
-Other flows transform the input payload, get the Patient from Salesforce Health Cloud System and then create new object which contain any data about Patient.
-
+For the other objects, the flows transform the input payload, get the Patient from Salesforce Health Cloud System and then create a new object which contains any data about Patient.
 
 
 # Considerations <a name="considerations"/>
@@ -60,11 +58,11 @@ In order to have this template working as expected, you should be aware of your 
 
 ## Cloudhub security considerations <a name="cloudhubsecurityconsiderations"/>
 
-+ Placeholders ${http.port} and ${https.port} are forced by Cloudhub to be 8081 and 8082. These ports are always externally exposed. There is no way to override this behaviour
++ Placeholders ${http.port} and ${https.port} are forced by Cloudhub to be 8081 and 8082. These ports are always externally exposed.
 + External endpoints with HTTPS are exposed through Cloudhub load balancer, which has Cloudhub valid SSL certificates for <appname\>.cloudhub.io URL
 + From the <appname\>.cloudhub.io URL, these endpoints can be reached using 80 and 443 ports depending on the protocol
 
-There is a possibility to implement the security by generating own valid SSL certificate and changing the ${http.port} placeholder to ${https.port}.
+There is the possibility to implement security by generating your own valid SSL certificate and changing the ${http.port} placeholder to ${https.port}.
 
 # Run it! <a name="runit"/>
 Simple steps to get Healthcare FHIR to Salesforce Health Cloud EHR System API running.
@@ -93,7 +91,7 @@ You can find a detailed description on how to do so in this [Documentation Page]
 ### Running on Studio <a name="runonstudio"/>
 Once you have imported you Anypoint Template into Anypoint Studio you need to follow these steps to run it:
 
-+ Locate the properties file `mule-app.properties`, in src/main/app
++ Locate the properties file mule-<env>.properties, in src/main/app/resources
 + Complete all the properties required as per the examples in the section [Properties to be configured](#propertiestobeconfigured)
 + Once that is done, right click on you Anypoint Template project folder 
 + Hover you mouse over `"Run as"`
@@ -117,6 +115,3 @@ In order to use this Mule Anypoint Template you need to configure properties (Cr
 + sfdc.username `joan.baez@orgb`
 + sfdc.password `JoanBaez456`
 + sfdc.token `ces56arl7apQs56XTddf34X`
-
-# API Calls <a name="apicalls"/>
-Salesforce imposes limits on the number of API Calls that can be made.
