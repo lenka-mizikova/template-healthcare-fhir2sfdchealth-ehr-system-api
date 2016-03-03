@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
 	<parent>
 		<groupId>org.mule.templates</groupId>
@@ -13,10 +14,10 @@
 	<packaging>mule</packaging>
 	<name>template-healthcare-fhir2sfdchealth-ehr-system-api Mule Anypoint Template Project</name>
 
-    <properties>
+	<properties>
 		<munit.version>1.1.1</munit.version>
-    	<mule.munit.support.version>3.7.1</mule.munit.support.version>
-    </properties>
+		<mule.munit.support.version>3.7.1</mule.munit.support.version>
+	</properties>
 
 	<scm>
 		<connection>scm:git:https://github.com/mulesoft/template-healthcare-fhir2sfdchealth-ehr-system-api.git</connection>
@@ -33,60 +34,71 @@
 				<configuration>
 					<copyToAppsDirectory>true</copyToAppsDirectory>
 					<inclusions>
-                        <inclusion>
-                            <groupId>org.mule.modules</groupId>
-                            <artifactId>mule-module-sfdc</artifactId>
-                        </inclusion>
-	                    <inclusion>
-                            <groupId>org.mule.modules</groupId>
-                            <artifactId>mule-module-apikit</artifactId>
-                        </inclusion>
-    	                <inclusion>
-                            <groupId>org.mule.modules</groupId>
-                            <artifactId>mule-module-extensions-support</artifactId>
-                        </inclusion>
-        	            <inclusion>
-                            <groupId>org.mule.modules</groupId>
-                            <artifactId>mule-module-extensions-spring-support</artifactId>
-                        </inclusion>
-            	        <inclusion>
-                            <groupId>com.mulesoft.munit.utils</groupId>
-                            <artifactId>munit-synchronize-module</artifactId>
-                        </inclusion>
+						<inclusion>
+							<groupId>org.mule.modules</groupId>
+							<artifactId>mule-module-sfdc</artifactId>
+						</inclusion>
+						<inclusion>
+							<groupId>org.mule.modules</groupId>
+							<artifactId>mule-module-apikit</artifactId>
+						</inclusion>
+						<inclusion>
+							<groupId>org.mule.modules</groupId>
+							<artifactId>mule-module-extensions-support</artifactId>
+						</inclusion>
+						<inclusion>
+							<groupId>org.mule.modules</groupId>
+							<artifactId>mule-module-extensions-spring-support</artifactId>
+						</inclusion>
+						<inclusion>
+							<groupId>com.mulesoft.munit.utils</groupId>
+							<artifactId>munit-synchronize-module</artifactId>
+						</inclusion>
 					</inclusions>
 				</configuration>
 			</plugin>
 			<plugin>
-                <groupId>com.mulesoft.munit.tools</groupId>
-                <artifactId>munit-maven-plugin</artifactId>
-                <version>${munit.version}</version>
-                <executions>
-                    <execution>
-                        <id>test</id>
-                        <phase>test</phase>
-                        <goals>
-                            <goal>test</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <coverage>
-                        <runCoverage>true</runCoverage>
-                        <formats>
-                            <format>html</format>
-                        </formats>
-                    </coverage>
-                </configuration>
-            </plugin>
-        </plugins>
+				<groupId>com.mulesoft.munit.tools</groupId>
+				<artifactId>munit-maven-plugin</artifactId>
+				<version>${munit.version}</version>
+				<executions>
+					<execution>
+						<id>test</id>
+						<phase>test</phase>
+						<goals>
+							<goal>test</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<coverage>
+						<runCoverage>true</runCoverage>
+						<formats>
+							<format>html</format>
+						</formats>
+					</coverage>
+				</configuration>
+			</plugin>
+		</plugins>
+		<resources>
+			<resource>
+				<directory>src/main/api/</directory>
+			</resource>
+			<resource>
+				<directory>src/main/resources/</directory>
+			</resource>
+		</resources>
 		<testResources>
-            <testResource>
-                <directory>src/test/munit</directory>
-            </testResource>
-        	<testResource>
-                <directory>src/test/resources</directory>
-         	</testResource>
-        </testResources>
+			<testResource>
+				<directory>src/test/munit</directory>
+			</testResource>
+			<testResource>
+				<directory>src/test/resources</directory>
+			</testResource>
+			<testResource>
+				<directory>src/main/api/</directory>
+			</testResource>
+		</testResources>
 	</build>
 
 	<dependencies>
@@ -107,44 +119,44 @@
 			<version>${mule.version}</version>
 		</dependency>
 		<dependency>
-            <groupId>org.mule.modules</groupId>
-            <artifactId>mule-module-sfdc</artifactId>
-            <version>${sfdc.version}</version>
-        </dependency>		
+			<groupId>org.mule.modules</groupId>
+			<artifactId>mule-module-sfdc</artifactId>
+			<version>${sfdc.version}</version>
+		</dependency>
 		<dependency>
 			<groupId>org.mule.modules</groupId>
 			<artifactId>mule-module-apikit</artifactId>
 			<version>1.7.2</version>
 		</dependency>
- 		<dependency>
-            <groupId>com.mulesoft.weave</groupId>
-            <artifactId>mule-plugin-weave_2.11</artifactId>
-            <version>${mule.version}</version>
-            <scope>provided</scope>
-            <exclusions>
-            	<exclusion>
-            		<groupId>org.threeten</groupId>
+		<dependency>
+			<groupId>com.mulesoft.weave</groupId>
+			<artifactId>mule-plugin-weave_2.11</artifactId>
+			<version>${mule.version}</version>
+			<scope>provided</scope>
+			<!-- exclusions>
+				<exclusion>
+					<groupId>org.threeten</groupId>
 					<artifactId>threetenbp</artifactId>
-            	</exclusion>
-            </exclusions>
-        </dependency>
-	    <dependency>
-            <groupId>com.mulesoft.munit</groupId>
-            <artifactId>mule-munit-support</artifactId>
-            <version>${mule.munit.support.version}</version>
-            <scope>test</scope>
-        </dependency>
-    	<dependency>
-            <groupId>com.mulesoft.munit</groupId>
-            <artifactId>munit-runner</artifactId>
-            <version>${munit.version}</version>
-            <scope>test</scope>
-        </dependency>
-    	<dependency>
-            <groupId>com.mulesoft.munit.utils</groupId>
-            <artifactId>munit-synchronize-module</artifactId>
-            <version>1.0.0</version>
-        </dependency>        
+				</exclusion>
+			</exclusions -->
+		</dependency>
+		<dependency>
+			<groupId>com.mulesoft.munit</groupId>
+			<artifactId>mule-munit-support</artifactId>
+			<version>${mule.munit.support.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.mulesoft.munit</groupId>
+			<artifactId>munit-runner</artifactId>
+			<version>${munit.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.mulesoft.munit.utils</groupId>
+			<artifactId>munit-synchronize-module</artifactId>
+			<version>1.0.0</version>
+		</dependency>
 	</dependencies>
 
 	<repositories>

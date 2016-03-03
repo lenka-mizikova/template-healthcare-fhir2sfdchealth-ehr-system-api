@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<mule xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:synchronize="http://www.mulesoft.org/schema/mule/synchronize" xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting"
-	xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:mock="http://www.mulesoft.org/schema/mule/mock" xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
+<mule xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:synchronize="http://www.mulesoft.org/schema/mule/synchronize" xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting"
+	xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:mock="http://www.mulesoft.org/schema/mule/mock" xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-current.xsd
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
@@ -8,6 +10,8 @@ http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/mu
 http://www.mulesoft.org/schema/mule/mock http://www.mulesoft.org/schema/mule/mock/current/mule-mock.xsd
 http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
 http://www.mulesoft.org/schema/mule/synchronize http://www.mulesoft.org/schema/mule/synchronize/current/mule-synchronize.xsd">
+	
+	<context:property-placeholder location="mule.test.properties"/>
     <spring:beans>
         <spring:import resource="classpath:system-api.xml" />
     </spring:beans>
@@ -23,8 +27,9 @@ patient.put("Id","123");
 return patient;]]></scripting:script>
     
     <munit:config mock-connectors="false" mock-inbounds="false" doc:name="MUnit configuration"/>
-    <http:request-config name="HTTP_Request_Configuration" host="localhost" port="${http.port}" basePath="/api" doc:name="HTTP Request Configuration" >
+    <http:request-config name="HTTP_Request_Configuration" host="0.0.0.0" port="${http.port}" basePath="/api" doc:name="HTTP Request Configuration" >
         <http:raml-api-configuration location="healthcare-fhir2sfdchealth-ehr-system-api.raml"/>
+
     </http:request-config>
     <munit:test name="put:/patients/MRN/123:system-api-config-200-application/json-FlowTest" description="Verifying functionality of [put:/patients/{patientIDType}/{patientID}:system-api-config-200-application/json]" ignore="true">
         <mock:when messageProcessor=".*:.*" doc:name="Mock the input JSON">
@@ -86,10 +91,10 @@ return patient;]]></scripting:script>
                 <http:uri-param paramName="patientID" value="123"/>
                 <http:header headerName="Content-Length" value="0"/>
 
+
             </http:request-builder>
         </http:request>
 
-        <logger message="test - #[payload]" level="INFO" doc:name="Logger"/>
         <object-to-string-transformer doc:name="http response to string"/>
         <munit:assert-true message="The HTTP Status code is not correct!" condition="#[messageInboundProperty('http.status').is(eq(200))]" doc:name="assert that - http.status eq 200"/>
 
@@ -145,6 +150,13 @@ return patient;]]></scripting:script>
                 <munit:assert-true message="The payload should contain one or more records which should be inserted into SFDC instance!" condition="#[payload.size()&gt;0]" doc:name="Assert True"/>
             </mock:assertions-after-call>
         </mock:spy>
+        <dw:transform-message doc:name="Transform Message to JSON">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+{
+}]]></dw:set-payload>
+        </dw:transform-message>
         <http:request config-ref="HTTP_Request_Configuration" method="POST" path="/patients/{patientIDType}/{patientID}/allergies" doc:name="HTTP">
             <http:request-builder>
                 <http:uri-param paramName="patientIDType" value="MRN"/>
@@ -203,6 +215,13 @@ return patient;]]></scripting:script>
                 <munit:assert-true message="The payload first record should contain values which should be inserted into SFDC instance!" condition="#[payload.get(0).toString().equals(&quot;{Account__c=TestAcc, AbatementDetail255__c=, AbatementDetail__c=, CodeLabel__c=Appendicitis, CodeSystem__c=http://snomed.info/sct, Code__c=74400008, StatusCode__c=Active, Patient__c=123}&quot;)]" doc:name="Assert True"/>
             </mock:assertions-after-call>
         </mock:spy>
+        <dw:transform-message doc:name="Transform Message to JSON">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+{
+}]]></dw:set-payload>
+        </dw:transform-message>
         <http:request config-ref="HTTP_Request_Configuration" method="POST" path="/patients/{patientIDType}/{patientID}/conditions" doc:name="HTTP">
             <http:request-builder>
                 <http:uri-param paramName="patientIDType" value="MRN"/>
@@ -271,9 +290,17 @@ return patient;]]></scripting:script>
                 <munit:assert-true condition="#[payload.Account__c != null]" doc:name="Assert True" message="The EhrPatient Account__c should not be NULL!"/>
             </mock:assertions-before-call>
             <mock:assertions-after-call>
-                <munit:assert-true message="The payload should contain records which should be inserted into SFDC instance!" condition="#[payload.toString().equals(&quot;[{Account__c=TestAcc, DateWritten__c=Fri Feb 26 00:00:00 CET 2016, DispenseMedicationCodeSystem__c=RxNorm, DispenseMedicationCode__c=679314, DispenseMedicationName__c=null, DispenseQuantityUnit__c=null, DispenseQuantityValue__c=null, MedicationCodeLabel__c=null, MedicationCodeSystem__c=RxNorm, MedicationCode__c=679314, MedicationName__c=PALIPERIDONE ER 3 MG TABLET,EXTENDED RELEASE 24 HR, Patient__c=123, PrescriberName__c=PROVIDER, NOT CONFIRMED, StatusCode__c=active, ReasonCode__c=null}]&quot;)]" doc:name="Assert True"/>
+                <munit:assert-true message="The payload should contain records which should be inserted into SFDC instance!" condition="#[payload.toString().equals(&quot;[{Account__c=TestAcc, DateWritten__c=Thu Mar 03 00:00:00 CET 2016, DispenseMedicationCodeSystem__c=RxNorm, DispenseMedicationCode__c=679314, DispenseMedicationName__c=null, DispenseQuantityUnit__c=null, DispenseQuantityValue__c=null, MedicationCodeLabel__c=null, MedicationCodeSystem__c=RxNorm, MedicationCode__c=679314, MedicationName__c=PALIPERIDONE ER 3 MG TABLET,EXTENDED RELEASE 24 HR, Patient__c=123, PrescriberName__c=PROVIDER, NOT CONFIRMED, StatusCode__c=active, ReasonCode__c=null}]&quot;)]" doc:name="Assert True"/>
+
             </mock:assertions-after-call>
         </mock:spy>
+        <dw:transform-message doc:name="Transform Message to JSON">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+{
+}]]></dw:set-payload>
+        </dw:transform-message>
         <http:request config-ref="HTTP_Request_Configuration" method="POST" path="/patients/{patientIDType}/{patientID}/medications" doc:name="HTTP">
             <http:request-builder>
                 <http:uri-param paramName="patientIDType" value="MRN"/>
@@ -332,10 +359,18 @@ return patient;]]></scripting:script>
                 <munit:assert-true message="The payload should contain records which should be inserted into SFDC instance!" condition="#[payload.toString().equals(&quot;[{Account__c=TestAcc, AppliesDateTime__c=Fri Jul 31 00:00:00 CEST 2015, Comments__c=EPIC Observations, NameCode__c=86021, NameLabel__c=, NameSystem__c=Internal, Patient__c=123, ReferenceRangeHighUnit__c=null, ReferenceRangeHighValue__c=null, ReferenceRangeLowUnit__c=null, ReferenceRangeLowValue__c=null, ValueCode__c=null, ValueLabel__c=null, ValueQuantityUnit__c=null, ValueQuantity__c=null}]&quot;)]" doc:name="Assert True"/>
             </mock:assertions-after-call>
         </mock:spy>
+        <dw:transform-message doc:name="Transform Message to JSON">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+{
+}]]></dw:set-payload>
+        </dw:transform-message>
         <http:request config-ref="HTTP_Request_Configuration" method="POST" path="/patients/{patientIDType}/{patientID}/observations" doc:name="HTTP">
             <http:request-builder>
                 <http:uri-param paramName="patientIDType" value="MRN"/>
                 <http:uri-param paramName="patientID" value="123"/>
+
             </http:request-builder>
         </http:request>
         <object-to-string-transformer doc:name="http response to string" />
