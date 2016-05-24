@@ -5,19 +5,14 @@
 	<parent>
 		<groupId>org.mule.templates</groupId>
 		<artifactId>templates-tooling-healthcare-parent-pom</artifactId>
-		<version>1.2.0</version>
+		<version>1.3.0</version>
 	</parent>
 
 	<modelVersion>4.0.0</modelVersion>
 	<artifactId>template-healthcare-fhir2sfdchealth-ehr-system-api</artifactId>
-	<version>1.2.1-SNAPSHOT</version>
+	<version>1.3.0-SNAPSHOT</version>
 	<packaging>mule</packaging>
 	<name>template-healthcare-fhir2sfdchealth-ehr-system-api Mule Anypoint Template Project</name>
-
-	<properties>
-		<munit.version>1.1.1</munit.version>
-		<mule.munit.support.version>3.7.1</mule.munit.support.version>
-	</properties>
 
 	<scm>
 		<connection>scm:git:https://github.com/mulesoft/template-healthcare-fhir2sfdchealth-ehr-system-api.git</connection>
@@ -172,6 +167,12 @@
 			<url>https://repository.mulesoft.org/nexus/content/repositories/releases-ee/</url>
 			<layout>default</layout>
 		</repository>
+		<repository>
+            <id>mulesoft-releases</id>
+            <name>MuleSoft Releases Repository</name>
+            <url>http://repository.mulesoft.org/releases/</url>
+            <layout>default</layout>
+        </repository>
 	</repositories>
 
 </project>
