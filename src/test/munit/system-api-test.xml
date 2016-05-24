@@ -257,23 +257,27 @@ return patient;]]></scripting:script>
                     <mock:invocation-property key="Name" value="#[]"/>
                 </mock:invocation-properties>
             </mock:then-return>
+
         </mock:when>
         <mock:when messageProcessor=".*:.*" doc:name="Mock 'Get EmrPatient from SFDC'">
             <mock:with-attributes>
                 <mock:with-attribute name="doc:name" whereValue="#['Get EmrPatient from SFDC']"/>
             </mock:with-attributes>
             <mock:then-return payload="#[resultOfScript('ehrPatient')]"/>
+
         </mock:when>
         <mock:when messageProcessor=".*:.*" doc:name="Mock 'Create new EhrMedicationPrescriptions'">
             <mock:with-attributes>
                 <mock:with-attribute name="doc:name" whereValue="#['Create new EhrMedicationPrescriptions']"/>
             </mock:with-attributes>
             <mock:then-return payload="#[&quot;success&quot;]"/>
+
         </mock:when>
         <mock:spy messageProcessor=".*:.*" doc:name="Spy 'Transform and store payload into inputJson variable' transformation">
             <mock:with-attributes>
                 <mock:with-attribute name="doc:name" whereValue="#['Transform and store payload into inputJson variable']"/>
             </mock:with-attributes>
+
             <mock:assertions-before-call>
                 <munit:assert-payload-equals message="Invalid input data!" expectedValue="#[resultOfScript('fhirMedicationsJSON')]" doc:name="Assert Payload"/>
             </mock:assertions-before-call>
@@ -291,31 +295,8 @@ return patient;]]></scripting:script>
                 <munit:assert-true condition="#[payload.Account__c != null]" doc:name="Assert True" message="The EhrPatient Account__c should not be NULL!"/>
             </mock:assertions-before-call>
             <mock:assertions-after-call>
-                <dw:transform-message doc:name="Prepare expected output for assertion">
-                    <dw:set-variable variableName="myVar"><![CDATA[%dw 1.0
-%output application/java
----
-[
-	{
-		"Account__c": "TestAcc",
-		"DateWritten__c": now as :date,
-		"DispenseMedicationCodeSystem__c": "RxNorm",
-		"DispenseMedicationCode__c": "679314",
-		"DispenseMedicationName__c": null,
-		"DispenseQuantityUnit__c": null,
-		"DispenseQuantityValue__c": null,
-		"MedicationCodeLabel__c": null,
-		"MedicationCodeSystem__c": "RxNorm",
-		"MedicationCode__c": "679314",
-		"MedicationName__c": "PALIPERIDONE ER 3 MG TABLET,EXTENDED RELEASE 24 HR",
-		"Patient__c": "123",
-		"PrescriberName__c": "PROVIDER, NOT CONFIRMED",
-		"StatusCode__c": "active",
-		"ReasonCode__c": null
-	}
-]]]></dw:set-variable>
-                </dw:transform-message>
-                <munit:assert-payload-equals message="The payload should contain records which should be inserted into SFDC instance!" expectedValue="#[flowVars.myVar]" doc:name="Assert Payload"/>
+                <munit:assert-on-equals message="The payload should contain fields of record which should be inserted into SFDC instance!" expectedValue="#[&quot;TestAcc&quot;]" actualValue="#[payload[0].Account__c]" doc:name="Assert Equals"/>
+
 
 
             </mock:assertions-after-call>
@@ -331,6 +312,7 @@ return patient;]]></scripting:script>
             <http:request-builder>
                 <http:uri-param paramName="patientIDType" value="MRN"/>
                 <http:uri-param paramName="patientID" value="123"/>
+
             </http:request-builder>
         </http:request>
         <object-to-string-transformer doc:name="http response to string" />
@@ -385,29 +367,8 @@ return patient;]]></scripting:script>
                 <munit:assert-true message="Payload should be instance of Map and the resourceType should be 'Observation'!" condition="#[payload instanceof Map &amp;&amp; payload.resourceType.equals(&quot;Observation&quot;)]" doc:name="Assert True"/>
             </mock:assertions-before-call>
             <mock:assertions-after-call>
-                <dw:transform-message doc:name="Prepare expected output for assertion">
-                    <dw:set-variable variableName="myVar"><![CDATA[%dw 1.0
-%output application/java
----
-[{
-	"Account__c": "TestAcc",
-	"AppliesDateTime__c": "2015-07-31" as :date,
-	"Comments__c": "EPIC Observations",
-	"NameCode__c": "86021",
-	"NameLabel__c": "",
-	"NameSystem__c": "Internal",
-	"Patient__c": "123",
-	"ReferenceRangeHighUnit__c": null,
-	"ReferenceRangeHighValue__c": null,
-	"ReferenceRangeLowUnit__c": null,
-	"ReferenceRangeLowValue__c": null,
-	"ValueCode__c": null,
-	"ValueLabel__c": null,
-	"ValueQuantityUnit__c": null,
-	"ValueQuantity__c": null
-}]]]></dw:set-variable>
-                </dw:transform-message>
-                <munit:assert-payload-equals message="The payload should contain records which should be inserted into SFDC instance!" expectedValue="#[flowVars.myVar]" doc:name="Assert Payload"/>
+                <munit:assert-true message="The payload should contain fields of record which should be inserted into SFDC instance!" condition="#[&quot;TestAcc&quot;.equals(payload[0].Account__c) &amp;&amp; &quot;86021&quot;.equals(payload[0].NameCode__c)]" doc:name="Assert True"/>
+
 
 
             </mock:assertions-after-call>
