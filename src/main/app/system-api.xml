@@ -217,6 +217,8 @@ payload]]></dw:set-variable>
 	"Account__c": flowVars.ehrPatient.Account__c,
 	"AbatementDetail255__c": "",
 	"AbatementDetail__c": "",
+	"AsserterPatient__c": payload.asserter.display when (payload.asserter != null and (payload.asserter.reference startsWith "patient")) otherwise "",
+	"AsserterPractitioner__c": payload.asserter.display when (payload.asserter != null and (payload.asserter.reference startsWith "practitioner")) otherwise "",
 	"CodeLabel__c": $.display,
 	"CodeSystem__c": $.system,
 	"Code__c": $.code,
