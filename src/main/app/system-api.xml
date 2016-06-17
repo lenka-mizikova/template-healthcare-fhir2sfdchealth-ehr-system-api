@@ -240,7 +240,7 @@ payload]]></dw:set-variable>
 payload]]></dw:set-payload>
         </dw:transform-message>
     </flow>
-    <flow name="post:/allergies:system-api-config">
+        <flow name="post:/allergies:system-api-config">
         <set-variable variableName="patientID" value="#[message.inboundProperties.'http.uri.params'.patientID]" doc:name="Set patientID"/>
         <set-variable variableName="patientIDType" value="#[message.inboundProperties.'http.uri.params'.patientIDType]" doc:name="Set patientIDType"/>
         <json:json-to-object-transformer doc:name="JSON to Object"/>
@@ -253,6 +253,19 @@ payload]]></dw:set-variable>
         <sfdc:query-single config-ref="Salesforce__Basic_Authentication" query="dsql:SELECT Id, Name__c, Account__c FROM EhrPatient__c WHERE SourceSystemId__c = '#[flowVars.patientID]'" doc:name="Get EmrPatient from SFDC"/>
         <set-variable variableName="ehrPatient" value="#[payload]" doc:name="Set ehrPatient variable"/>
         <foreach collection="#[flowVars.inputJson]" doc:name="For Each">
+            <dw:transform-message doc:name="Prepare reporter">
+                <dw:set-variable variableName="reporter"><![CDATA[%dw 1.0
+%output application/java
+---
+{
+	number : (payload.reporter.reference splitBy '/')[-1],
+	type : (payload.reporter.reference splitBy '/')[0]
+} when payload.reporter != null otherwise null
+]]></dw:set-variable>
+            </dw:transform-message>
+            <enricher source="#[payload != null ? payload.Id : null]" target="#[flowVars.practitionerId]" doc:name="Message Enricher">
+                <sfdc:query-single config-ref="Salesforce__Basic_Authentication" query="dsql:SELECT Id FROM EhrPractitioner__c WHERE SourceSystemId__c = '#[flowVars.reporter.number]'" doc:name="Get EmrPractitioner from SFDC"/>
+            </enricher>
             <dw:transform-message metadata:id="9855b3a5-1fef-40fc-a306-9b40441544e6" doc:name="Prepare create of the EhrAllergyIntolerances in SFDC">
                 <dw:set-payload><![CDATA[%dw 1.0
 %output application/java
@@ -263,6 +276,7 @@ payload]]></dw:set-variable>
 		("CriticalityLabel__c": ((payload.criticality map $) joinBy ', ') when (payload.criticality is :array) otherwise payload.criticality) when (payload.criticality != null),
 		"SubstanceLong__c": payload.substance.text,	
 		"Patient__c": flowVars.ehrPatient.Id,
+		"Recorder__c": flowVars.practitionerId,
 		("Reaction__c": ((payload.reaction map $.manifestation.text) joinBy ', ') when (payload.reaction is :array) otherwise payload.reaction) when (payload.reaction != null),
 		"RecordedDate__c": payload.recordedDate as :date default null
 }]
@@ -280,6 +294,7 @@ payload]]></dw:set-variable>
 payload]]></dw:set-payload>
         </dw:transform-message>
     </flow>
+
     <flow name="post:/scheduling:system-api-config">
 
         <dw:transform-message doc:name="Generate response">
