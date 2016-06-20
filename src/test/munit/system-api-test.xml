@@ -25,6 +25,16 @@ http://www.mulesoft.org/schema/mule/synchronize http://www.mulesoft.org/schema/m
 patient.put("Account__c","TestAcc");
 patient.put("Id","123");
 return patient;]]></scripting:script>
+
+	<scripting:script name="ehrCondition" engine="Groovy" doc:name="Script"><![CDATA[Map condition = new HashMap();
+
+condition.put("Id","456");
+return condition;]]></scripting:script>
+
+	<scripting:script name="sfdcResponse" engine="Groovy" doc:name="Script"><![CDATA[Map response = new HashMap();
+
+response.put("Response","success");
+return response;]]></scripting:script>
     
     <munit:config mock-connectors="false" mock-inbounds="false" doc:name="MUnit configuration"/>
     <http:request-config name="HTTP_Request_Configuration" host="0.0.0.0" port="${http.port}" basePath="/api" doc:name="HTTP Request Configuration" >
@@ -232,6 +242,46 @@ return patient;]]></scripting:script>
         <object-to-string-transformer doc:name="http response to string" />
         <munit:assert-true message="The HTTP Status code is not correct!" condition="#[messageInboundProperty('http.status').is(eq(200))]" doc:name="assert that - http.status eq 200" />
 
+    </munit:test>
+    <munit:test name="put:/patients/MRN/123/conditions:system-api-config-200-application/json-FlowTest" description="Verifying functionality of [put:/patients/{patientIDType}/{patientID}/conditions:system-api-config-200-application/json]">
+        <mock:when messageProcessor=".*:.*" doc:name="Mock 'Get EhrCondition from SFDC'">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Get EhrCondition from SFDC']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#[resultOfScript('ehrCondition')]"/>
+        </mock:when>
+        <mock:when messageProcessor=".*:.*" doc:name="Mock 'Get EhrPatient from SFDC'">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Get EhrPatient from SFDC']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#[resultOfScript('ehrPatient')]"/>
+        </mock:when>
+        <mock:when messageProcessor=".*:.*" doc:name="Mock 'Upsert EhrCondition'">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Upsert EhrCondition']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#[resultOfScript('sfdcResponse')]"/>
+        </mock:when>
+        <mock:spy messageProcessor=".*:.*" doc:name="Spy 'Prepare upsert of the EhrCondition in SFDC' transformation">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Prepare upsert of the EhrCondition in SFDC']"/>
+            </mock:with-attributes>
+            <mock:assertions-before-call>
+                <munit:assert-true message="Payload should be instance of Map and the resourceType should be 'Condition'!" condition="#[payload instanceof Map &amp;&amp; payload.resourceType.equals(&quot;Condition&quot;)]" doc:name="Assert True"/>
+            </mock:assertions-before-call>
+            <mock:assertions-after-call>
+                <munit:assert-on-equals message="The payload should contain values which should be upserted into SFDC instance!" expectedValue="#[&quot;{Id=456, AbatementDetail255__c=, AbatementDetail__c=, AsserterPatient__c=, AsserterPractitioner__c=, CodeLabel__c=Appendicitis, CodeSystem__c=http://snomed.info/sct, Code__c=74400008, Onset__c=1996-04-27, StatusCode__c=Active, Patient__c=123}&quot;.replaceAll(&quot;\\s&quot;,&quot;&quot;)]" actualValue="#[payload.get(0).toString().replaceAll(&quot;\\s&quot;,&quot;&quot;)]" doc:name="Assert Equals"/>
+            </mock:assertions-after-call>
+        </mock:spy>
+        <set-payload value="#[getResource('condition-fhir-request.json').asString()]" mimeType="application/json" doc:name="Set Payload"/>
+        <http:request config-ref="HTTP_Request_Configuration" path="/patients/{patientIDType}/{patientID}/conditions" method="PUT" doc:name="HTTP">
+            <http:request-builder>
+                <http:uri-param paramName="patientID" value="123"/>
+                <http:uri-param paramName="patientIDType" value="MRN"/>
+            </http:request-builder>
+        </http:request>
+        <object-to-string-transformer doc:name="http response to string"/>
+        <munit:assert-true message="The HTTP Status code is not correct!" condition="#[messageInboundProperty('http.status').is(eq(200))]" doc:name="assert that - http.status eq 200"/>
     </munit:test>
     <munit:test name="post:/patients/MRN/123/encounters:system-api-config-200-application/json-FlowTest" description="Verifying functionality of [post:/patients/{patientIDType}/{patientID}/encounters:system-api-config-200-application/json]" >
         <http:request config-ref="HTTP_Request_Configuration" method="POST" path="/patients/{patientIDType}/{patientID}/encounters" doc:name="HTTP">
