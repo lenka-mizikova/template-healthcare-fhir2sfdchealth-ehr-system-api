@@ -41,18 +41,12 @@ return response;]]></scripting:script>
         <http:raml-api-configuration location="healthcare-fhir2sfdchealth-ehr-system-api.raml"/>
 
     </http:request-config>
-    <munit:test name="put:/patients/MRN/123:system-api-config-200-application/json-FlowTest" description="Verifying functionality of [put:/patients/{patientIDType}/{patientID}:system-api-config-200-application/json]" ignore="true">
+    <munit:test name="put:/patients/MRN/123:system-api-config-200-application/json-FlowTest" description="Verifying functionality of [put:/patients/{patientIDType}/{patientID}:system-api-config-200-application/json]" >
         <mock:when messageProcessor=".*:.*" doc:name="Mock the input JSON">
             <mock:with-attributes>
                 <mock:with-attribute name="doc:name" whereValue="#['JSON to Object']"/>
             </mock:with-attributes>
-            <mock:then-return payload="#[resultOfScript('fhirPatientJSON')]" mimeType="text/json">
-                <mock:invocation-properties>
-                    <mock:invocation-property key="Name" value="#[]"/>
-                    <mock:invocation-property key="Name" value="#[]"/>
-                    <mock:invocation-property key="Name" value="#[]"/>
-                </mock:invocation-properties>
-            </mock:then-return>
+            <mock:then-return payload="#[resultOfScript('fhirPatientJSON')]" mimeType="text/json"/>
 
 
         </mock:when>
@@ -68,7 +62,7 @@ return response;]]></scripting:script>
             <mock:with-attributes>
                 <mock:with-attribute name="doc:name" whereValue="#['Update EmrPatient']"/>
             </mock:with-attributes>
-            <mock:then-return payload="#[&quot;success&quot;]"/>
+            <mock:then-return payload="#[resultOfScript('sfdcResponse')]"/>
 
         </mock:when>
         <mock:spy messageProcessor=".*:.*" doc:name="Spy 'Transform and store payload into fhirPatientData variable' transfomation">
@@ -95,11 +89,11 @@ return response;]]></scripting:script>
                 <munit:assert-true message="Payload should contain values which should be inserted into SFDC instance!" condition="#[payload.toString().equals(&quot;{Id=123, Address1City__c=San Francisco, Address1Country__c=United States of America, Address1Line1__c=1855 Folsom Street, Address1Line2__c=, Address1PostalCode__c=53703, Address1State__c=Wisconsin, FamilyName1__c=Radonctest, GenderLabel__c=male, GivenName1__c=Veera, MaritalStatusCode__c=null, MaritalStatusLabel__c=null, MaritalStatusSystem__c=null, Name__c=Veera Radonctest, Telecom1Use__c=home, Telecom1Value__c=608-999-9654, Telecom2Use__c=null, Telecom2Value__c=null, BirthDate__c=Thu Feb 12 00:00:00 CET 1970}&quot;)]" doc:name="Assert True"/>
             </mock:assertions-after-call>
         </mock:spy>
+        <set-payload value="#[resultOfScript('fhirPatientJSON')]" mimeType="application/json" doc:name="Set Payload"/>
         <http:request config-ref="HTTP_Request_Configuration" path="/patients/{patientIDType}/{patientID}" method="PUT" doc:name="HTTP">
             <http:request-builder>
                 <http:uri-param paramName="patientIDType" value="MRN"/>
                 <http:uri-param paramName="patientID" value="123"/>
-                <http:header headerName="Content-Length" value="0"/>
 
 
             </http:request-builder>
