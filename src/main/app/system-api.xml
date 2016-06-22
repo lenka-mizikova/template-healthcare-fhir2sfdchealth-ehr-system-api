@@ -20,6 +20,7 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
         <apikit:flow-mapping resource="/patients/{patientIDType}/{patientID}/encounters" action="post" flow-ref="post:/encounters:system-api-config"/>
         <apikit:flow-mapping resource="/patients/{patientIDType}/{patientID}" action="put" flow-ref="put:/patients:system-api-config"/>
         <apikit:flow-mapping resource="/patients/{patientIDType}/{patientID}/conditions" action="put" flow-ref="put:/conditions:system-api-config"/>
+        <apikit:flow-mapping resource="/patients/{patientIDType}/{patientID}/allergies" action="put" flow-ref="put:/allergies:system-api-config"/>
 
 
 
@@ -335,6 +336,7 @@ payload]]></dw:set-variable>
 		"Account__c": flowVars.ehrPatient.Account__c,
 		("CriticalityLabel__c": ((payload.criticality map $) joinBy ', ') when (payload.criticality is :array) otherwise payload.criticality) when (payload.criticality != null),
 		"SubstanceLong__c": payload.substance.text,	
+		"Substance255__c": payload.substance.text,
 		"Patient__c": flowVars.ehrPatient.Id,
 		"Recorder__c": flowVars.practitionerId,
 		("Reaction__c": ((payload.reaction map $.manifestation.text) joinBy ', ') when (payload.reaction is :array) otherwise payload.reaction) when (payload.reaction != null),
@@ -346,6 +348,72 @@ payload]]></dw:set-variable>
                 <sfdc:objects ref="#[payload]"/>
             </sfdc:create>
             <logger message="New AllergyIntolerances were created succesfully, payload is: #[payload]" level="INFO" doc:name="Log the success"/>
+        </foreach>
+        <dw:transform-message doc:name="Transform response to JSON">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+payload]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+    <flow name="put:/allergies:system-api-config">
+        <dw:transform-message metadata:id="a7a049d8-fcf3-4539-bbc8-c320547d2435" doc:name="Payload to Object and get URI params">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+payload]]></dw:set-payload>
+            <dw:set-variable variableName="patientID"><![CDATA[%dw 1.0
+%output application/java
+---
+inboundProperties.'http.uri.params'.patientID]]></dw:set-variable>
+            <dw:set-variable variableName="patientIDType"><![CDATA[%dw 1.0
+%output application/java
+---
+inboundProperties.'http.uri.params'.patientIDType]]></dw:set-variable>
+        </dw:transform-message>
+        <enricher source="#[payload]" target="#[flowVars.ehrPatient]" doc:name="Set ehrPatient variable">
+            <sfdc:query-single config-ref="Salesforce__Basic_Authentication" query="dsql:SELECT Id, Account__c FROM EhrPatient__c WHERE SourceSystemId__c = '#[flowVars.patientID]'" doc:name="Get EhrPatient from SFDC"/>
+        </enricher>
+        <foreach collection="#[payload]" doc:name="For Each AllergyIntolerance">
+            <dw:transform-message doc:name="Prepare reporter">
+                <dw:set-variable variableName="reporter"><![CDATA[%dw 1.0
+%output application/java
+---
+{
+	number : (payload.reporter.reference splitBy '/')[-1],
+	type : (payload.reporter.reference splitBy '/')[0]
+} when payload.reporter != null otherwise null
+]]></dw:set-variable>
+            </dw:transform-message>
+            <enricher source="#[payload != null ? payload.Id : null]" target="#[flowVars.practitionerId]" doc:name="Enrich with SFDC Practitioner Id">
+                <sfdc:query-single config-ref="Salesforce__Basic_Authentication" query="dsql:SELECT Id FROM EhrPractitioner__c WHERE SourceSystemId__c = '#[flowVars.reporter.number]'" doc:name="Get EhrPractitioner from SFDC"/>
+            </enricher>
+            <enricher source="payload == null ? null : payload.Id" target="payload.sfdcAllergyIntoleranceId" doc:name="Enrich with SFDC AllergyIntolerance Id">
+                <sfdc:query-single config-ref="Salesforce__Basic_Authentication" query="dsql:SELECT Id FROM EhrAllergyIntolerance__c WHERE Substance255__c = '#[payload.substance.text]' AND Patient__c = '#[flowVars.ehrPatient.Id]'" doc:name="Get EhrAllergyIntolerance from SFDC"/>
+            </enricher>
+            <dw:transform-message metadata:id="9855b3a5-1fef-40fc-a306-9b40441544e6" doc:name="Prepare upsert of the EhrAllergyIntolerances in SFDC">
+                <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+[{
+		("Id": payload.sfdcAllergyIntoleranceId) when payload.sfdcAllergyIntoleranceId != null,
+		"RecorderName__c": payload.reporter.display,
+		"Account__c": flowVars.ehrPatient.Account__c,
+		("CriticalityLabel__c": ((payload.criticality map $) joinBy ', ') when (payload.criticality is :array) otherwise payload.criticality) when (payload.criticality != null),
+		"SubstanceLong__c": payload.substance.text,	
+		"Substance255__c": payload.substance.text,	
+		"Patient__c": flowVars.ehrPatient.Id,
+		"Recorder__c": flowVars.practitionerId,
+		("Reaction__c": ((payload.reaction map $.manifestation.text) joinBy ', ') when (payload.reaction is :array) otherwise payload.reaction) when (payload.reaction != null),
+		"RecordedDate__c": payload.recordedDate as :date default null
+}]
+]]></dw:set-payload>
+            </dw:transform-message>
+            <sfdc:upsert config-ref="Salesforce__Basic_Authentication" externalIdFieldName="Id" type="EhrAllergyIntolerance__c" doc:name="Upsert EhrAllergyIntolerances">
+                <sfdc:objects ref="#[payload]"/>
+            </sfdc:upsert>
+            <logger message="AllergyIntolerances were upserted, payload is: #[payload]" level="INFO" doc:name="Log the success"/>
         </foreach>
         <dw:transform-message doc:name="Transform response to JSON">
             <dw:set-payload><![CDATA[%dw 1.0
