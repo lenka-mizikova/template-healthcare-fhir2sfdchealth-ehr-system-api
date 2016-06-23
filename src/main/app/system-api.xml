@@ -264,7 +264,7 @@ inboundProperties.'http.uri.params'.patientIDType]]></dw:set-variable>
         <foreach collection="#[payload]" counterVariableName="conditionCounter" doc:name="For Each Condition">
             <foreach collection="#[payload.code.coding]" counterVariableName="codingCounter" doc:name="For Each Condition Code">
                 <enricher source="payload == null ? null : payload.Id" target="payload.sfdcConditionId" doc:name="Enrich with SFDC Condition information">
-                    <sfdc:query-single config-ref="Salesforce__Basic_Authentication" query="dsql:SELECT Id FROM EhrCondition__c WHERE Code__c = '#[payload.code]'" doc:name="Get EhrCondition from SFDC"/>
+                    <sfdc:query-single config-ref="Salesforce__Basic_Authentication" query="dsql:SELECT Id FROM EhrCondition__c WHERE Code__c = '#[payload.code]' AND CodeSystem__c = '#[payload.system]' AND Patient__c = '#[flowVars.ehrPatient.Id]'" doc:name="Get EhrCondition from SFDC"/>
                 </enricher>
             </foreach>
             <dw:transform-message metadata:id="2db5a607-c17d-4dde-a454-36107d60c4d4" doc:name="Prepare upsert of the EhrCondition in SFDC">
