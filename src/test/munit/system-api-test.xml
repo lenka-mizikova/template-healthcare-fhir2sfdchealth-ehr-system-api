@@ -217,7 +217,7 @@ return response;]]></scripting:script>
                 <munit:assert-true message="Payload should be instance of Map and the resourceType should be 'AllergyIntolerance'!" condition="#[payload instanceof Map &amp;&amp; payload.resourceType.equals(&quot;AllergyIntolerance&quot;)]" doc:name="Assert True"/>
             </mock:assertions-before-call>
             <mock:assertions-after-call>
-                <munit:assert-on-equals message="The payload should contain values which should be upserted into SFDC instance!" expectedValue="#[&quot;{Id= 654, RecorderName__c= CHAO, LING, Account__c=TestAcc, CriticalityLabel__c= CRITH, SubstanceLong__c= FENNEL (FOENICULUM VULGARE), Substance255__c= FENNEL (FOENICULUM VULGARE), Patient__c= 123, Recorder__c= 321, RecordedDate__c= FriAug2800:00:00CEST2015}&quot;.replaceAll(&quot;\\s&quot;,&quot;&quot;)]" actualValue="#[payload.get(0).toString().replaceAll(&quot;\\s&quot;,&quot;&quot;)]" doc:name="Assert Equals"/>
+				<munit:assert-on-equals message="The payload should contain values which should be upserted into SFDC instance!" expectedValue="#[&quot;{Id= 654, RecorderName__c= CHAO, LING, Account__c=TestAcc, CriticalityLabel__c= CRITH, SubstanceLong__c= FENNEL (FOENICULUM VULGARE), Substance255__c= FENNEL (FOENICULUM VULGARE), Patient__c= 123, Recorder__c= 321, RecordedDate__c= FriAug2800:00:00CEST2015, StatusLabel__c= null}&quot;.replaceAll(&quot;\\s&quot;,&quot;&quot;)]" actualValue="#[payload.get(0).toString().replaceAll(&quot;\\s&quot;,&quot;&quot;)]" doc:name="Assert Equals"/>
             </mock:assertions-after-call>
         </mock:spy>
         <set-payload value="#[getResource('allergyIntolerance-fhir-request.json').asString()]" mimeType="application/json" doc:name="Set Payload"/>
@@ -322,7 +322,7 @@ return response;]]></scripting:script>
                 <munit:assert-true message="Payload should be instance of Map and the resourceType should be 'Condition'!" condition="#[payload instanceof Map &amp;&amp; payload.resourceType.equals(&quot;Condition&quot;)]" doc:name="Assert True"/>
             </mock:assertions-before-call>
             <mock:assertions-after-call>
-                <munit:assert-on-equals message="The payload should contain values which should be upserted into SFDC instance!" expectedValue="#[&quot;{Id=456, AbatementDetail255__c=, AbatementDetail__c=, AsserterPatient__c=, AsserterPractitioner__c=, CodeLabel__c=Appendicitis, CodeSystem__c=http://snomed.info/sct, Code__c=74400008, Onset__c=1996-04-27, StatusCode__c=Active, Patient__c=123}&quot;.replaceAll(&quot;\\s&quot;,&quot;&quot;)]" actualValue="#[payload.get(0).toString().replaceAll(&quot;\\s&quot;,&quot;&quot;)]" doc:name="Assert Equals"/>
+                <munit:assert-on-equals message="The payload should contain values which should be upserted into SFDC instance!" expectedValue="#[&quot;{Id=456, AbatementDetail255__c=, AbatementDetail__c=, AsserterPatient__c=, AsserterPractitioner__c=, CodeLabel__c=Appendicitis, CodeSystem__c=http://snomed.info/sct, Code__c=74400008, Onset__c=1996-04-27, StatusLabel__c=null, Patient__c=123}&quot;.replaceAll(&quot;\\s&quot;,&quot;&quot;)]" actualValue="#[payload.get(0).toString().replaceAll(&quot;\\s&quot;,&quot;&quot;)]" doc:name="Assert Equals"/>
             </mock:assertions-after-call>
         </mock:spy>
         <set-payload value="#[getResource('condition-fhir-request.json').asString()]" mimeType="application/json" doc:name="Set Payload"/>
