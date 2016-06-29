@@ -34,7 +34,7 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
     <flow name="put:/patients:system-api-config">
     	<set-variable variableName="patientID" value="#[message.inboundProperties.'http.uri.params'.patientID]" doc:name="Set patientID"/>
         <set-variable variableName="patientIDType" value="#[message.inboundProperties.'http.uri.params'.patientIDType]" doc:name="Set patientIDType"/>
-        <json:json-to-object-transformer doc:name="JSON to Object"/>
+
         <dw:transform-message doc:name="Transform and store payload into fhirPatientData variable">
             <dw:set-variable variableName="fhirPatientData"><![CDATA[%dw 1.0
 %output application/java

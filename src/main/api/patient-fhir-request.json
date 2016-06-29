@@ -1,7 +1,7 @@
 {
   "resourceType": "Patient",
   "id": "patients/mrn/12345",
-  "name": {
+  "name": [{
     "use": "official",
     "family": [
       "Radonctest"
@@ -15,7 +15,7 @@
     "suffix": [
       ""
     ]
-  },
+  }],
   "telecom": [
     {
       "system": "phone",
