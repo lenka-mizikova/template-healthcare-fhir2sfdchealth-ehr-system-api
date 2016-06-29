@@ -259,7 +259,7 @@ inboundProperties.'http.uri.params'.patientID]]></dw:set-variable>
 inboundProperties.'http.uri.params'.patientIDType]]></dw:set-variable>
         </dw:transform-message>
         <enricher doc:name="Set ehrPatient variable" source="#[payload]" target="#[flowVars.ehrPatient]">
-            <sfdc:query-single config-ref="Salesforce__Basic_Authentication" query="dsql:SELECT Id, Account__c FROM EhrPatient__c WHERE SourceSystemId__c = '#[flowVars.patientID]'" doc:name="Get EhrPatient from SFDC"/>
+            <sfdc:query-single config-ref="Salesforce__Basic_Authentication" query="dsql:SELECT Id, Name__c, Account__c FROM EhrPatient__c WHERE SourceSystemId__c = '#[flowVars.patientID]'" doc:name="Get EhrPatient from SFDC"/>
         </enricher>
         <foreach collection="#[payload]" counterVariableName="conditionCounter" doc:name="For Each Condition">
             <foreach collection="#[payload.code.coding]" counterVariableName="codingCounter" doc:name="For Each Condition Code">
@@ -278,20 +278,20 @@ inboundProperties.'http.uri.params'.patientIDType]]></dw:set-variable>
 	("Account__c": flowVars.ehrPatient.Account__c) when $.sfdcConditionId == null,
 	"AbatementDetail255__c": "",
 	"AbatementDetail__c": "",
-	"AsserterPatient__c": payload.asserter.display when (payload.asserter != null and (payload.asserter.reference startsWith "patient")) otherwise "",
+	"AsserterPatient__c": flowVars.ehrPatient.Name__c when (payload.asserter != null and (payload.asserter.reference startsWith "patient")) otherwise "",
 	"AsserterPractitioner__c": payload.asserter.display when (payload.asserter != null and (payload.asserter.reference startsWith "practitioner")) otherwise "",
 	"CodeLabel__c": $.display,
 	"CodeSystem__c": $.system,
 	"Code__c": $.code,
-	"Onset__c": payload.onsetDateTime,
-	"StatusCode__c": "Active",
+	"Onset__c": payload.onsetDateTime default "",
+	"StatusLabel__c": payload.verificationStatus,
 	"Patient__c": flowVars.ehrPatient.Id
 }) when (payload.code.coding != null) otherwise []]]></dw:set-payload>
             </dw:transform-message>
             <sfdc:upsert config-ref="Salesforce__Basic_Authentication" externalIdFieldName="Id" type="EhrCondition__c" doc:name="Upsert EhrCondition">
                 <sfdc:objects ref="#[payload]"/>
             </sfdc:upsert>
-            <logger message="Condition was edited, payload is: #[payload]" level="INFO" doc:name="Log the success"/>
+            <logger message="Condition was upserted, payload is: #[payload]" level="INFO" doc:name="Log the success"/>
         </foreach>
 
         <dw:transform-message doc:name="Transform response to JSON">
@@ -381,9 +381,9 @@ inboundProperties.'http.uri.params'.patientIDType]]></dw:set-variable>
 %output application/java
 ---
 {
-	number : (payload.reporter.reference splitBy '/')[-1],
-	type : (payload.reporter.reference splitBy '/')[0]
-} when payload.reporter != null otherwise null
+	number : (payload.reporter.reference splitBy '/')[-1] default null,
+	type : (payload.reporter.reference splitBy '/')[0] default null
+}
 ]]></dw:set-variable>
             </dw:transform-message>
             <enricher source="#[payload != null ? payload.Id : null]" target="#[flowVars.practitionerId]" doc:name="Enrich with SFDC Practitioner Id">
@@ -406,14 +406,14 @@ inboundProperties.'http.uri.params'.patientIDType]]></dw:set-variable>
 		"Patient__c": flowVars.ehrPatient.Id,
 		"Recorder__c": flowVars.practitionerId,
 		("Reaction__c": ((payload.reaction map $.manifestation.text) joinBy ', ') when (payload.reaction is :array) otherwise payload.reaction) when (payload.reaction != null),
-		"RecordedDate__c": payload.recordedDate as :date default null
-}]
-]]></dw:set-payload>
+		"RecordedDate__c": payload.recordedDate as :date default null,
+		"StatusLabel__c": payload.status
+}]]]></dw:set-payload>
             </dw:transform-message>
             <sfdc:upsert config-ref="Salesforce__Basic_Authentication" externalIdFieldName="Id" type="EhrAllergyIntolerance__c" doc:name="Upsert EhrAllergyIntolerances">
                 <sfdc:objects ref="#[payload]"/>
             </sfdc:upsert>
-            <logger message="AllergyIntolerances were upserted, payload is: #[payload]" level="INFO" doc:name="Log the success"/>
+            <logger message="AllergyIntolerance was upserted, payload is: #[payload]" level="INFO" doc:name="Log the success"/>
         </foreach>
         <dw:transform-message doc:name="Transform response to JSON">
             <dw:set-payload><![CDATA[%dw 1.0
