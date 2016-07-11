@@ -1,0 +1,11 @@
+{
+    "inputMessageMetadata": {
+        "messagePayload": {
+            "connectorName": "HTTP_Request_Configuration",
+            "typeId": "POST:/practitioners/{practitionerID}_request"
+        }
+    },
+    "outputMessageMetadata": {},
+    "id": "902fdb6a-7ad6-4ad2-884c-7126b0a950fe",
+    "version": "5.2.0.0"
+}
