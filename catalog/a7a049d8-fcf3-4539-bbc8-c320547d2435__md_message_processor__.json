@@ -5,7 +5,14 @@
             "typeId": "Condition"
         }
     },
-    "outputMessageMetadata": {},
+    "outputMessageMetadata": {
+        "flowVariables": {
+            "practitionerID": {
+                "connectorName": "#_custom_mule_metadata_type_#",
+                "typeId": "String"
+            }
+        }
+    },
     "id": "a7a049d8-fcf3-4539-bbc8-c320547d2435",
     "version": "5.2.0.0"
 }

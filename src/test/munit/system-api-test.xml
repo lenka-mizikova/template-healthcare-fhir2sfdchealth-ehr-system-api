@@ -493,6 +493,32 @@ return response;]]></scripting:script>
         <munit:assert-true message="The HTTP Status code is not correct!" condition="#[messageInboundProperty('http.status').is(eq(200))]" doc:name="assert that - http.status eq 200" />
 
     </munit:test>
+    <munit:test name="post:/practitioners/456:system-api-config-200-application/json-FlowTest" description="Verifying functionality of [post:/practitioners/{practitionerID}:system-api-config-200-application/json]">
+        <mock:when messageProcessor=".*:.*" doc:name="Mock 'Create new EhrPractitioner'">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Create new EhrPractitioner']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#[resultOfScript('sfdcResponse')]"/>
+
+        </mock:when>
+        <mock:spy messageProcessor=".*:.*" doc:name="Spy 'Prepare create of the EhrPractitioner in SFDC' transformation">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Prepare create of the EhrPractitioner in SFDC']"/>
+            </mock:with-attributes>
+
+            <mock:assertions-after-call>
+                <munit:assert-true message="The payload should contain fields of record which should be inserted into SFDC instance!" condition="#[&quot;Adam Careful&quot;.equals(payload[0].Name255__c) &amp;&amp; &quot;456&quot;.equals(payload[0].SourceSystemId__c) &amp;&amp; &quot;Dr&quot;.equals(payload[0].PrefixName1__c)]" doc:name="Assert True"/>
+            </mock:assertions-after-call>
+        </mock:spy>
+        <set-payload value="#[getResource('practitioner-fhir-request.json').asString()]" mimeType="application/json" doc:name="Set Payload"/>
+        <http:request config-ref="HTTP_Request_Configuration" path="/practitioners/{practitionerID}" method="POST" doc:name="HTTP">
+            <http:request-builder>
+                <http:uri-param paramName="practitionerID" value="456"/>
+            </http:request-builder>
+        </http:request>
+        <object-to-string-transformer doc:name="http response to string"/>
+        <munit:assert-true message="The HTTP Status code is not correct!" condition="#[messageInboundProperty('http.status').is(eq(200))]" doc:name="assert that - http.status eq 200"/>
+    </munit:test>
     <munit:test name="post:/patients/MRN/123/scheduling:system-api-config-200-application/json-FlowTest" description="Verifying functionality of [post:/patients/{patientIDType}/{patientID}/scheduling:system-api-config-200-application/json]" >
         <http:request config-ref="HTTP_Request_Configuration" method="POST" path="/patients/{patientIDType}/{patientID}/scheduling" doc:name="HTTP">
             <http:request-builder>

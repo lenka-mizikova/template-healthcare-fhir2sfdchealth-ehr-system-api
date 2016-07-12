@@ -1,18 +1,11 @@
 {
     "inputMessageMetadata": {
-        "messagePayload": {
-            "connectorName": "#_custom_mule_metadata_type_#",
-            "typeId": "FhirCondition"
-        },
         "flowVariables": {
             "inputJson": {
                 "connectorName": "#_custom_mule_metadata_type_#",
                 "typeId": "FhirConditionList"
             },
-            "ehrPatient": {
-                "connectorName": "#_custom_mule_metadata_type_#",
-                "typeId": "EhrPatientMapFromSFDC"
-            }
+            "ehrPatient": {}
         }
     },
     "outputMessageMetadata": {},

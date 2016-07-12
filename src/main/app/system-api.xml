@@ -21,6 +21,7 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
         <apikit:flow-mapping resource="/patients/{patientIDType}/{patientID}" action="put" flow-ref="put:/patients:system-api-config"/>
         <apikit:flow-mapping resource="/patients/{patientIDType}/{patientID}/conditions" action="put" flow-ref="put:/conditions:system-api-config"/>
         <apikit:flow-mapping resource="/patients/{patientIDType}/{patientID}/allergies" action="put" flow-ref="put:/allergies:system-api-config"/>
+        <apikit:flow-mapping resource="/practitioners/{practitionerID}" action="post" flow-ref="post:/practitioners:system-api-config"/>
 
 
 
@@ -34,7 +35,7 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
     <flow name="put:/patients:system-api-config">
     	<set-variable variableName="patientID" value="#[message.inboundProperties.'http.uri.params'.patientID]" doc:name="Set patientID"/>
         <set-variable variableName="patientIDType" value="#[message.inboundProperties.'http.uri.params'.patientIDType]" doc:name="Set patientIDType"/>
-
+        <json:json-to-object-transformer doc:name="JSON to Object"/>
         <dw:transform-message doc:name="Transform and store payload into fhirPatientData variable">
             <dw:set-variable variableName="fhirPatientData"><![CDATA[%dw 1.0
 %output application/java
@@ -415,6 +416,55 @@ inboundProperties.'http.uri.params'.patientIDType]]></dw:set-variable>
             </sfdc:upsert>
             <logger message="AllergyIntolerance was upserted, payload is: #[payload]" level="INFO" doc:name="Log the success"/>
         </foreach>
+        <dw:transform-message doc:name="Transform response to JSON">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+payload]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+    <flow name="post:/practitioners:system-api-config">
+        <dw:transform-message doc:name="Prepare create of the EhrPractitioner in SFDC" metadata:id="902fdb6a-7ad6-4ad2-884c-7126b0a950fe">
+        	<dw:input-payload doc:sample="sample_data\practitioner-fhir-example.json"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+[{
+	"Address1City__c": payload.address[0].city,
+	"Address1Country__c": payload.address[0].country,
+	"Address1Line1__c": payload.address[0].line[0],
+	"Address1Line2__c": "",
+	"Address1PostalCode__c": payload.address[0].postalCode,
+	"Address1State__c": payload.address[0].state,
+	"Address1Use__c": payload.address[0].use,
+	"FamilyName1__c": payload.name[0].family[0] when (payload.name[0].family[0] != null) otherwise "",
+	"Gender__c": payload.gender,
+	"GivenName1__c": payload.name[0].given[0] when (payload.name[0].given[0] != null) otherwise "",
+	"Name255__c": ((payload.name[0].given[0] ++ " ") when (payload.name[0].given[0] != null) otherwise "") 
+			++ (payload.name[0].family[0]) when (payload.name[0].family[0] != null) otherwise "",
+	"PrefixName1__c": payload.name[0].prefix[0],
+	"SourceSystemId__c": inboundProperties.'http.uri.params'.practitionerID,
+	"SpecialtyCode__c": payload.practitionerRole[0].specialty[0].coding[0].code,
+	"SpecialtySystem__c": payload.practitionerRole[0].specialty[0].coding[0].system,
+	"SuffixName1__c": payload.name[0].suffix[0],
+	"Telecom1Use__c": payload.telecom[0].use,
+	"Telecom1Value__c": payload.telecom[0].value,
+	"Telecom1System__c": payload.telecom[0].system,
+	"Telecom2Use__c": payload.telecom[1].use,
+	"Telecom2Value__c": payload.telecom[1].value,
+	"Telecom2System__c": payload.telecom[1].system,
+	"Telecom3Use__c": payload.telecom[2].use,
+	"Telecom3Value__c": payload.telecom[2].value,
+	"Telecom3System__c": payload.telecom[2].system,
+	("BirthDate__c": payload.birthDate as :date) when payload.birthDate != null
+}]]]></dw:set-payload>
+        </dw:transform-message>
+        <sfdc:create config-ref="Salesforce__Basic_Authentication" type="EhrPractitioner__c" doc:name="Create new EhrPractitioner">
+            <sfdc:objects ref="#[payload]"/>
+        </sfdc:create>
+
+
+        <logger message="New Practitioner created, payload is: #[payload]" level="INFO" doc:name="Log the success"/>
         <dw:transform-message doc:name="Transform response to JSON">
             <dw:set-payload><![CDATA[%dw 1.0
 %output application/json
