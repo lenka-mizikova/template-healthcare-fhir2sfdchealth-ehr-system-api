@@ -1,0 +1,11 @@
+{
+    "inputMessageMetadata": {
+        "messagePayload": {
+            "connectorName": "#_custom_mule_metadata_type_#",
+            "typeId": "PractitionersFHIR"
+        }
+    },
+    "outputMessageMetadata": {},
+    "id": "9fb4dc63-5207-41e3-ad3c-d8d711304a7a",
+    "version": "5.2.0.0"
+}

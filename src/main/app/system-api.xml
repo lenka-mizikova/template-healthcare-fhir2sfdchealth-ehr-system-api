@@ -21,7 +21,8 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
         <apikit:flow-mapping resource="/patients/{patientIDType}/{patientID}" action="put" flow-ref="put:/patients:system-api-config"/>
         <apikit:flow-mapping resource="/patients/{patientIDType}/{patientID}/conditions" action="put" flow-ref="put:/conditions:system-api-config"/>
         <apikit:flow-mapping resource="/patients/{patientIDType}/{patientID}/allergies" action="put" flow-ref="put:/allergies:system-api-config"/>
-        <apikit:flow-mapping resource="/practitioners/{practitionerID}" action="post" flow-ref="post:/practitioners:system-api-config"/>
+        <apikit:flow-mapping resource="/practitioners/{practitionerID}" action="post" flow-ref="post:/practitioners/{practitionerID}:system-api-config"/>
+        <apikit:flow-mapping resource="/practitioners" action="put" flow-ref="put:/practitioners:system-api-config"/>
 
 
 
@@ -423,7 +424,7 @@ inboundProperties.'http.uri.params'.patientIDType]]></dw:set-variable>
 payload]]></dw:set-payload>
         </dw:transform-message>
     </flow>
-    <flow name="post:/practitioners:system-api-config">
+    <flow name="post:/practitioners/{practitionerID}:system-api-config">
         <dw:transform-message doc:name="Prepare create of the EhrPractitioner in SFDC" metadata:id="902fdb6a-7ad6-4ad2-884c-7126b0a950fe">
         	<dw:input-payload doc:sample="sample_data\practitioner-fhir-example.json"/>
             <dw:set-payload><![CDATA[%dw 1.0
@@ -465,6 +466,58 @@ payload]]></dw:set-payload>
 
 
         <logger message="New Practitioner created, payload is: #[payload]" level="INFO" doc:name="Log the success"/>
+        <dw:transform-message doc:name="Transform response to JSON">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+payload]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+    <flow name="put:/practitioners:system-api-config">
+        <dw:transform-message doc:name="Prepare upsert of the EhrPractitioners in SFDC" metadata:id="9fb4dc63-5207-41e3-ad3c-d8d711304a7a">
+            <dw:input-payload doc:sample="sample_data\practitioners-fhir-example.json"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+payload map {
+	"Address1City__c": $.address[0].city,
+	"Address1Country__c": $.address[0].country,
+	"Address1Line1__c": $.address[0].line[0],
+	"Address1Line2__c": "",
+	"Address1PostalCode__c": $.address[0].postalCode,
+	"Address1State__c": $.address[0].state,
+	"Address1Use__c": $.address[0].use,
+	"FamilyName1__c": $.name[0].family[0] when ($.name[0].family[0] != null) otherwise "",
+	"Gender__c": $.gender,
+	"GivenName1__c": $.name[0].given[0] when ($.name[0].given[0] != null) otherwise "",
+	"Name255__c": (($.name[0].given[0] ++ " ") when ($.name[0].given[0] != null) otherwise "") 
+			++ ($.name[0].family[0]) when ($.name[0].family[0] != null) otherwise "",
+	"PrefixName1__c": $.name[0].prefix[0],
+	"SourceSystemId__c": ($.id splitBy "/")[1] default null,
+	"SpecialtyCode__c": $.practitionerRole[0].specialty[0].coding[0].code,
+	"SpecialtySystem__c": $.practitionerRole[0].specialty[0].coding[0].system,
+	"SuffixName1__c": $.name[0].suffix[0],
+	"Telecom1Use__c": $.telecom[0].use,
+	"Telecom1Value__c": $.telecom[0].value,
+	"Telecom1System__c": $.telecom[0].system,
+	"Telecom2Use__c": $.telecom[1].use,
+	"Telecom2Value__c": $.telecom[1].value,
+	"Telecom2System__c": $.telecom[1].system,
+	"Telecom3Use__c": $.telecom[2].use,
+	"Telecom3Value__c": $.telecom[2].value,
+	"Telecom3System__c": $.telecom[2].system,
+	("BirthDate__c": $.birthDate as :date) when $.birthDate != null
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <foreach doc:name="For Each Practitioner">
+            <enricher source="payload == null ? null : payload.Id" target="payload.Id" doc:name="Enrich with SFDC Practitioner information">
+                <sfdc:query-single config-ref="Salesforce__Basic_Authentication" query="dsql:SELECT Id FROM EhrPractitioner__c WHERE SourceSystemId__c = '#[payload.SourceSystemId__c]'" doc:name="Get EhrPractitioner from SFDC"/>
+            </enricher>
+        </foreach>
+        <sfdc:upsert config-ref="Salesforce__Basic_Authentication" type="EhrPractitioner__c" doc:name="Upsert EhrPractitioners" externalIdFieldName="Id">
+            <sfdc:objects ref="#[payload]"/>
+        </sfdc:upsert>
+        <logger message="Practitioners were upserted, payload is: #[payload]" level="INFO" doc:name="Log the success"/>
         <dw:transform-message doc:name="Transform response to JSON">
             <dw:set-payload><![CDATA[%dw 1.0
 %output application/json
