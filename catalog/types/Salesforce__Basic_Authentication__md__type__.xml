@@ -872,7 +872,7 @@
           <properties>
             <org.mule.common.metadata.property.StructureIdentifierMetaDataModelProperty>
               <metaDataKey class="org.mule.common.metadata.DefaultMetaDataKey">
-                <id>EhrAllergyIntolerance__c Result</id>
+                <id>EhrPractitioner__c Result</id>
                 <category>SObjectMetadataCategory</category>
                 <metaDataKeyPropertiesManager>
                   <properties>
