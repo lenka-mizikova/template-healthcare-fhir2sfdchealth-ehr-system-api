@@ -93,17 +93,27 @@ baseUri: http://healthcare-fhir2sfdchealth-ehr-system-api.cloudhub.io/api
         200:
           body:
             application/json:
-/practitioners/{practitionerID}:
+/practitioners:
   displayName: Practitioners
-  uriParameters:
-    practitionerID:
-      type: string
-      description: Practitioner ID
-  post:  
-    description: "Create new Practitioner in the SFDC instance"
+  /{practitionerID}:
+    uriParameters:
+      practitionerID:
+        type: string
+        description: Practitioner ID
+    post:  
+      description: "Create new Practitioner in the SFDC instance"
+      body:
+        application/json:
+          example: !include practitioner-fhir-request.json
+      responses:
+        200:
+          body:
+            application/json:
+  put:
+    description: "Upsert Practitioners in the SFDC instance"
     body:
       application/json:
-        example: !include practitioner-fhir-request.json
+        example: !include practitioners-fhir-request.json
     responses:
       200:
         body:

@@ -1,5 +1,6 @@
 [{
   "resourceType": "Practitioner",
+  "id": "98765",
   "name": [{
     "use": "official",
     "family": [
@@ -66,7 +67,7 @@
 },
 {
   "resourceType": "Practitioner",
-  "id": "practitioner/65432",
+  "id": "65432",
   "name": [{
     "use": "official",
     "family": [

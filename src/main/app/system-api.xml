@@ -493,7 +493,7 @@ payload map {
 	"Name255__c": (($.name[0].given[0] ++ " ") when ($.name[0].given[0] != null) otherwise "") 
 			++ ($.name[0].family[0]) when ($.name[0].family[0] != null) otherwise "",
 	"PrefixName1__c": $.name[0].prefix[0],
-	"SourceSystemId__c": ($.id splitBy "/")[1] default null,
+	"SourceSystemId__c": $.id default null,
 	"SpecialtyCode__c": $.practitionerRole[0].specialty[0].coding[0].code,
 	"SpecialtySystem__c": $.practitionerRole[0].specialty[0].coding[0].system,
 	"SuffixName1__c": $.name[0].suffix[0],
