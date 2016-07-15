@@ -1,7 +1,7 @@
 [{
   "resourceType": "Practitioner",
   "id": "98765",
-  "name": [{
+  "name": {
     "use": "official",
     "family": [
       "Careful"
@@ -15,7 +15,7 @@
     "suffix": [
       ""
     ]
-  }],
+  },
   "telecom": [
     {
       "system": "phone",
@@ -68,7 +68,7 @@
 {
   "resourceType": "Practitioner",
   "id": "65432",
-  "name": [{
+  "name": {
     "use": "official",
     "family": [
       "Seven"
@@ -82,7 +82,7 @@
     "suffix": [
       "MD"
     ]
-  }],
+  },
   "telecom": [
     {
       "system": "phone",
