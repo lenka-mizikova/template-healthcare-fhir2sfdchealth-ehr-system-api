@@ -1,7 +1,7 @@
 {
   "resourceType": "Practitioner",
-  "id": "practitioner/98765",
-  "name": [{
+  "id": "98765",
+  "name": {
     "use": "official",
     "family": [
       "Careful"
@@ -15,7 +15,7 @@
     "suffix": [
       ""
     ]
-  }],
+  },
   "telecom": [
     {
       "system": "phone",
