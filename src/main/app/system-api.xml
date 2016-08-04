@@ -27,6 +27,7 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
         <apikit:flow-mapping resource="/patients/{patientIDType}/{patientID}" action="put" flow-ref="put:/patients:system-api-config"/>
         <apikit:flow-mapping resource="/patients/{patientIDType}/{patientID}/conditions" action="put" flow-ref="put:/conditions:system-api-config"/>
         <apikit:flow-mapping resource="/patients/{patientIDType}/{patientID}/allergies" action="put" flow-ref="put:/allergies:system-api-config"/>
+        <apikit:flow-mapping resource="/patients/{patientIDType}/{patientID}/devices" action="put" flow-ref="put:/devices:system-api-config"/>
         <apikit:flow-mapping resource="/practitioners/{practitionerID}" action="post" flow-ref="post:/practitioners/{practitionerID}:system-api-config"/>
         <apikit:flow-mapping resource="/practitioners" action="put" flow-ref="put:/practitioners:system-api-config"/>
 
@@ -151,6 +152,9 @@ payload]]></dw:set-variable>
         </dw:transform-message>
         <sfdc:query-single config-ref="Salesforce__Basic_Authentication" query="dsql:SELECT Id, Name__c, Account__c FROM EhrPatient__c WHERE SourceSystemId__c = '#[flowVars.patientID]'" doc:name="Get EmrPatient from SFDC"/>
         <set-variable variableName="ehrPatient" value="#[payload]" doc:name="Set ehrPatient variable"/>
+        <enricher source="payload" target="flowVars.ehrDevice" doc:name="Store EhrDevice to flowVars">
+            <sfdc:query-single config-ref="Salesforce__Basic_Authentication" query="dsql:SELECT Id FROM EhrDevice__c WHERE SourceSystemId__c = '#[dw(&quot;(flowVars.inputJson[0].device.reference splitBy \&quot;/\&quot;)[-1] default null&quot;)]'" doc:name="Get EhrDevice from SFDC"/>
+        </enricher>
         <foreach collection="#[flowVars.inputJson]" doc:name="For Each">
             <dw:transform-message doc:name="Prepare create of the EhrObservations in SFDC" metadata:id="076be915-77c0-40cb-9e4a-d6c85ba0e3f9">
                 <dw:input-variable doc:sample="string.dwl" variableName="inputJson"/>
@@ -161,6 +165,7 @@ payload]]></dw:set-variable>
 	"Account__c": flowVars.ehrPatient.Account__c,
 	"AppliesDateTime__c": payload.effectiveDateTime as :date default null,
 	"Comments__c": "EPIC Observations",
+	"Device__c": flowVars.ehrDevice.Id,
 	"NameCode__c": $.code,
 	"NameLabel__c": $.display,
 	"NameSystem__c": $.system,
@@ -178,6 +183,7 @@ payload]]></dw:set-variable>
 		"Account__c": flowVars.ehrPatient.Account__c,
 		"AppliesDateTime__c": payload.effectiveDateTime as :date default null,
 		"Comments__c": "EPIC Observations",
+		"Device__c": flowVars.ehrDevice.Id,
 		"NameCode__c": $.code.coding.code,
 		"NameLabel__c": $.code.coding.display,
 		"NameSystem__c": $.code.coding.system,
@@ -423,6 +429,52 @@ inboundProperties.'http.uri.params'.patientIDType]]></dw:set-variable>
             </sfdc:upsert>
             <logger message="AllergyIntolerance was upserted, payload is: #[payload]" level="INFO" doc:name="Log the success"/>
         </foreach>
+        <dw:transform-message doc:name="Transform response to JSON">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+payload]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+    <flow name="put:/devices:system-api-config">
+        <dw:transform-message doc:name="Get URI params">
+            <dw:set-variable variableName="patientID"><![CDATA[%dw 1.0
+%output application/java
+---
+inboundProperties.'http.uri.params'.patientID]]></dw:set-variable>
+            <dw:set-variable variableName="patientIDType"><![CDATA[%dw 1.0
+%output application/java
+---
+inboundProperties.'http.uri.params'.patientIDType]]></dw:set-variable>
+        </dw:transform-message>
+        <enricher source="#[payload]" target="#[flowVars.ehrPatient]" doc:name="Set ehrPatient variable">
+            <sfdc:query-single config-ref="Salesforce__Basic_Authentication" query="dsql:SELECT Id, Account__c FROM EhrPatient__c WHERE SourceSystemId__c = '#[flowVars.patientID]'" doc:name="Get EhrPatient from SFDC"/>
+        </enricher>
+        <dw:transform-message doc:name="Prepare upsert of the EhrDevices in SFDC" metadata:id="7fca8891-c72b-4945-8018-5bc7ba0a5049">
+        	<dw:input-payload doc:sample="sample_data\devices.json"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+payload map {
+		"Manufacturer__c": $.manufacturer,
+		"Model__c": $.model,
+		"Type__c": $.type.text,	
+		"Contact__c": $.contact[0].value,	
+		"Patient__c": flowVars.ehrPatient.Id,
+		"SourceSystemId__c": $.id default null
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <foreach collection="#[payload]" doc:name="For Each Device">
+
+            <enricher source="payload == null ? null : payload.Id" target="payload.Id" doc:name="Enrich payload with SFDC Device Id">
+                <sfdc:query-single config-ref="Salesforce__Basic_Authentication" query="dsql:SELECT Id FROM EhrDevice__c WHERE SourceSystemId__c = '#[payload.SourceSystemId__c]' AND Patient__c = '#[flowVars.ehrPatient.Id]'" doc:name="Get EhrDevice from SFDC"/>
+            </enricher>
+
+        </foreach>
+        <sfdc:upsert config-ref="Salesforce__Basic_Authentication" externalIdFieldName="Id" type="EhrDevice__c" doc:name="Upsert EhrDevices">
+            <sfdc:objects ref="#[payload]"/>
+        </sfdc:upsert>
+        <logger message="Devices were upserted, payload is: #[payload]" level="INFO" doc:name="Log the success"/>
         <dw:transform-message doc:name="Transform response to JSON">
             <dw:set-payload><![CDATA[%dw 1.0
 %output application/json
