@@ -23,7 +23,7 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
         <apikit:flow-mapping resource="/patients/{patientIDType}/{patientID}/medications" action="post" flow-ref="post:/medications:system-api-config"/>
         <apikit:flow-mapping resource="/patients/{patientIDType}/{patientID}/allergies" action="post" flow-ref="post:/allergies:system-api-config"/>
         <apikit:flow-mapping resource="/patients/{patientIDType}/{patientID}/scheduling" action="post" flow-ref="post:/scheduling:system-api-config"/>
-        <apikit:flow-mapping resource="/patients/{patientIDType}/{patientID}/encounters" action="post" flow-ref="post:/encounters:system-api-config"/>
+        <apikit:flow-mapping resource="/patients/{patientIDType}/{patientID}/encounters" action="put" flow-ref="put:/encounters:system-api-config"/>
         <apikit:flow-mapping resource="/patients/{patientIDType}/{patientID}" action="put" flow-ref="put:/patients:system-api-config"/>
         <apikit:flow-mapping resource="/patients/{patientIDType}/{patientID}/conditions" action="put" flow-ref="put:/conditions:system-api-config"/>
         <apikit:flow-mapping resource="/patients/{patientIDType}/{patientID}/allergies" action="put" flow-ref="put:/allergies:system-api-config"/>
@@ -592,16 +592,96 @@ payload]]></dw:set-payload>
 "message": "Not supported yet."]]></dw:set-payload>
         </dw:transform-message>
     </flow>
-    <flow name="post:/encounters:system-api-config">
-        <dw:transform-message doc:name="Generate response">
+    <flow name="put:/encounters:system-api-config">
+        <set-variable variableName="patientID" value="#[message.inboundProperties.'http.uri.params'.patientID]" doc:name="Set patientID"/>
+        <enricher source="#[payload]" target="#[flowVars.ehrPatient]" doc:name="Set ehrPatient variable">
+            <sfdc:query-single config-ref="Salesforce__Basic_Authentication" query="dsql:SELECT Id, Account__c FROM EhrPatient__c WHERE SourceSystemId__c = '#[flowVars.patientID]'" doc:name="Get EhrPatient from SFDC"/>
+        </enricher>
+        <dw:transform-message doc:name="Prepare create of the EhrEncounters in SFDC and store encunterParticipant in variable" metadata:id="ec72a11d-7df0-44ea-a723-22939cb66793">
+            <dw:input-payload doc:sample="appointment-fhir-request.json"/>
+            <dw:input-variable doc:sample="sample_data\EhrPatient__c.dwl" variableName="ehrPatient"/>
+
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+payload map {
+	"Account__c": flowVars.ehrPatient.Account__c default null,
+	"LengthUnit__c": "min",
+	"LengthValue__c": $.minutesDuration,
+	"Patient__c": flowVars.ehrPatient.Id default null,
+	"PeriodEnd__c": $.end as :datetime default null,
+	"PeriodStart__c": $.start as :datetime default null,
+	"SourceSystemId__c": $.id,
+	"Status__c": $.status,
+	"TypeLabel__c": $.description
+}]]></dw:set-payload>
+            <dw:set-variable variableName="encounterParticipant"><![CDATA[%dw 1.0
+%output application/java
+---
+payload map using (practitioner = $.participant filter ($.actor.reference startsWith "practitioner")){
+	"encounterId": $.id,
+	"participantId": (practitioner[0].actor.reference splitBy "/")[-1] default null
+}]]></dw:set-variable>
+
+        </dw:transform-message>
+        <foreach collection="#[payload]" doc:name="For Each EhrEncounter">
+            <enricher source="payload == null ? null : payload.Id" target="payload.Id" doc:name="Enrich with SFDC Encounter ID">
+                <sfdc:query-single config-ref="Salesforce__Basic_Authentication" query="dsql:SELECT Id FROM EhrEncounter__c WHERE SourceSystemId__c = '#[payload.SourceSystemId__c]'" doc:name="Get EhrEncounter ID from SFDC"/>
+            </enricher>
+        </foreach>
+        <sfdc:upsert config-ref="Salesforce__Basic_Authentication" type="EhrEncounter__c" doc:name="Upsert EhrEncounters" externalIdFieldName="Id">
+            <sfdc:objects ref="#[payload]"/>
+        </sfdc:upsert>
+        <logger message="Encounters were created, payload is: #[payload]" level="INFO" doc:name="Log the success"/>
+        <foreach collection="#[flowVars.encounterParticipant]" doc:name="For Each Encounter">
+            <enricher source="payload == null ? null : payload.Id" target="payload.sfdcEncounterId" doc:name="Enrich with SFDC Encounter ID">
+                <sfdc:query-single config-ref="Salesforce__Basic_Authentication" query="dsql:SELECT Id FROM EhrEncounter__c WHERE SourceSystemId__c = '#[payload.encounterId]'" doc:name="Get EhrEncounter ID from SFDC"/>
+            </enricher>
+            <enricher source="payload == null ? null : payload.Id" target="payload.sfdcPractitionerId" doc:name="Enrich with SFDC Practitioner ID">
+                <sfdc:query-single config-ref="Salesforce__Basic_Authentication" query="dsql:SELECT Id FROM EhrPractitioner__c WHERE SourceSystemId__c = '#[payload.participantId]'" doc:name="Get EhrPractitioner ID from SFDC"/>
+            </enricher>
+        </foreach>
+        <flow-ref name="deleteObsoleteEncounterParticipantsSubFlow" doc:name="deleteObsoleteEncounterParticipants"/>
+        <dw:transform-message doc:name="Prepare create of the EhrEncounterParticipants in SFDC">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+flowVars.encounterParticipant map {
+	"Encounter__c": $.sfdcEncounterId,
+	"Practitioner__c": $.sfdcPractitionerId
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <sfdc:create config-ref="Salesforce__Basic_Authentication" type="EhrEncounterParticipant__c" doc:name="Create new EhrEncounterParticipants">
+            <sfdc:objects ref="#[payload]"/>
+        </sfdc:create>
+        <logger message="Encounter Participants were created, payload is: #[payload]" level="INFO" doc:name="Log the success"/>
+        <dw:transform-message doc:name="Transform response to JSON">
             <dw:set-payload><![CDATA[%dw 1.0
 %output application/json
 ---
-"message": "Not supported yet."]]></dw:set-payload>
+payload]]></dw:set-payload>
         </dw:transform-message>
 
 
     </flow>
+    <sub-flow name="deleteObsoleteEncounterParticipantsSubFlow">
+        <set-variable variableName="obsoleteEncounterParticipants" value="#[[]]" doc:name="Init obsoleteEncounterParticipants"/>
+        <foreach collection="#[flowVars.encounterParticipant]" doc:name="For Each Encounter">
+            <sfdc:query config-ref="Salesforce__Basic_Authentication" query="dsql:SELECT Id FROM EhrEncounterParticipant__c WHERE Encounter__c = '#[payload.sfdcEncounterId]'" doc:name="Get obsolete EhrEncounterParticipant IDs from SFDC"/>
+            <foreach collection="#[payload]" doc:name="For Each Encounter Participant">
+                <dw:transform-message doc:name="Add Encounter Participant ID to obsoleteEncounterParticipants list">
+                    <dw:set-variable variableName="obsoleteEncounterParticipants"><![CDATA[%dw 1.0
+%output application/java
+---
+flatten (flowVars.obsoleteEncounterParticipants ++ [payload.Id]) when (payload != null and payload.Id != null) otherwise flowVars.obsoleteEncounterParticipants]]></dw:set-variable>
+                </dw:transform-message>
+            </foreach>
+        </foreach>
+        <sfdc:delete config-ref="Salesforce__Basic_Authentication" doc:name="Delete obsolete EhrEncounterParticipants">
+            <sfdc:ids ref="#[flowVars.obsoleteEncounterParticipants]"/>
+        </sfdc:delete>
+        <logger message="Deleted obsolete Encounter Participants: #[payload]" level="INFO" doc:name="Logger"/>
+    </sub-flow>
 
     <apikit:mapping-exception-strategy name="system-api-apiKitGlobalExceptionMapping">
         <apikit:mapping statusCode="404">

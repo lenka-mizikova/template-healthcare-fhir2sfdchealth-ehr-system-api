@@ -1,0 +1,17 @@
+{
+    "inputMessageMetadata": {
+        "messagePayload": {
+            "connectorName": "#_custom_mule_metadata_type_#",
+            "typeId": "FhirAppointment"
+        },
+        "flowVariables": {
+            "ehrPatient": {
+                "connectorName": "Salesforce__Basic_Authentication",
+                "typeId": "EhrPatient__c"
+            }
+        }
+    },
+    "outputMessageMetadata": {},
+    "id": "ec72a11d-7df0-44ea-a723-22939cb66793",
+    "version": "5.2.0.0"
+}

@@ -97,8 +97,11 @@ baseUri: http://healthcare-fhir2sfdchealth-ehr-system-api.cloudhub.io/api
           body:
             application/json:              
   /encounters:
-    post:  
-      description: "Create new Encounter in the SFDC instance"
+    put:  
+      description: "Upsert Encounter and respective Encounter Practitioner in the SFDC instance"
+      body:
+        application/json:
+          example: !include appointment-fhir-request.json
       responses:
         200:
           body:
